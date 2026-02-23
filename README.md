@@ -7,3 +7,10 @@ Still in design
 implementations from now
 
 <img width="480" height="93" alt="image" src="https://github.com/user-attachments/assets/b7e2e538-a992-4ecd-a72d-b966100303a0" />
+
+
+
+
+
+
+<img width="1024" height="1024" alt="cassette_unico" src="https://github.com/user-attachments/assets/3a1045a5-874e-45fc-8c87-c189a1605340" />
