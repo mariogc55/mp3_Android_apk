@@ -49,6 +49,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.media3.datasource.RawResourceDataSource
 import com.mariogc55.retrowave.player.ui.theme.RetroCassettePlayerTheme
+import android.media.MediaPlayer
 
 data class RetroCassetteData(
     val id: Int,
@@ -94,18 +95,21 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+fun playSoundEffect(context: android.content.Context, soundResId: Int) {
+    val mp = MediaPlayer.create(context, soundResId)
+    mp.setOnCompletionListener { it.release() }
+    mp.start()
+}
 
 @Composable
 fun MainScreen(exoPlayer: androidx.media3.exoplayer.ExoPlayer, context: android.content.Context) {
-    // Ahora guardamos el objeto completo, no solo el ID
     var currentCassette by remember { mutableStateOf<RetroCassetteData?>(null) }
     var isDoorOpen by remember { mutableStateOf(false) }
     var isPlaying by remember { mutableStateOf(false) }
 
-    // Lista de tus cintas (Asegúrate de tener los archivos en res/raw)
     val myTapes = listOf(
         RetroCassetteData(1, "Hotline Miami", R.raw.hotline_miami, Color.Magenta),
-        RetroCassetteData(2, "Enemies", R.raw.enemies_by_bite_the_buffalo, Color.Cyan) // Añade tu segundo MP3 aquí
+        RetroCassetteData(2, "Enemies", R.raw.enemies_by_bite_the_buffalo, Color.Cyan)
     )
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -117,10 +121,7 @@ fun MainScreen(exoPlayer: androidx.media3.exoplayer.ExoPlayer, context: android.
         )
 
         Row(modifier = Modifier.fillMaxSize()) {
-            LibrarySidebar(
-                modifier = Modifier.weight(0.3f),
-                tapes = myTapes // Pasamos la lista completa
-            )
+            LibrarySidebar(modifier = Modifier.weight(0.3f), tapes = myTapes)
 
             CassetteDeckSection(
                 modifier = Modifier.weight(0.7f),
@@ -130,12 +131,13 @@ fun MainScreen(exoPlayer: androidx.media3.exoplayer.ExoPlayer, context: android.
                 onDoorToggle = {
                     isDoorOpen = !isDoorOpen
                     if (isDoorOpen) {
+                        playSoundEffect(context, R.raw.open_tape)
                         exoPlayer.stop()
                         isPlaying = false
                     }
                 },
                 onEject = {
-                    // Lógica de expulsión
+                    playSoundEffect(context, R.raw.eject_cassette)
                     exoPlayer.stop()
                     isPlaying = false
                     isDoorOpen = true
@@ -143,6 +145,8 @@ fun MainScreen(exoPlayer: androidx.media3.exoplayer.ExoPlayer, context: android.
                 },
                 onPlayClick = {
                     if (currentCassette != null && !isDoorOpen) {
+                        playSoundEffect(context, R.raw.press_button)
+
                         if (isPlaying) {
                             exoPlayer.stop()
                             isPlaying = false
@@ -161,8 +165,10 @@ fun MainScreen(exoPlayer: androidx.media3.exoplayer.ExoPlayer, context: android.
                     }
                 },
                 onCassetteDropped = { data ->
+                    // SONIDO: Cuando el cassette "encaja" al soltarlo
+                    playSoundEffect(context, R.raw.closing_tape)
                     currentCassette = data
-                    isDoorOpen = false // Cerramos la tapa al insertar uno nuevo
+                    isDoorOpen = false
                 }
             )
         }
@@ -205,6 +211,7 @@ fun CassetteDeckSection(
     onPlayClick: () -> Unit,
     onCassetteDropped: (RetroCassetteData) -> Unit
 ) {
+
     RetroDropTarget<RetroCassetteData>(modifier = modifier.fillMaxSize()) { isInBound, data ->
         val dragInfo = LocalRetroDragInfo.current
 
