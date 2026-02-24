@@ -112,7 +112,8 @@ fun MainScreen(exoPlayer: androidx.media3.exoplayer.ExoPlayer, context: android.
     val myTapes = listOf(
         RetroCassetteData(1, "Hotline Miami", R.raw.hotline_miami, Color.Magenta),
         RetroCassetteData(2, "Enemies", R.raw.enemies_by_bite_the_buffalo, Color.Cyan),
-        RetroCassetteData(3, "Barns Courtney - Kicks", R.raw.barns_courtney_kicks, Color.Green)
+        RetroCassetteData(3, "Barns Courtney - Kicks", R.raw.barns_courtney_kicks, Color.Green),
+        RetroCassetteData(4, "Kavinsky - Nightcall", R.raw.night_call, Color.Magenta)
 
 
     )
