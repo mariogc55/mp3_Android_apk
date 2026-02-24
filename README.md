@@ -134,6 +134,8 @@ fun MainScreen(exoPlayer: androidx.media3.exoplayer.ExoPlayer, context: android.
                         playSoundEffect(context, R.raw.open_tape)
                         exoPlayer.stop()
                         isPlaying = false
+                    } else {
+                        playSoundEffect(context, R.raw.closing_tape)
                     }
                 },
                 onEject = {
@@ -259,7 +261,7 @@ fun CassetteDeckSection(
                             contentDescription = null,
                             modifier = Modifier
                                 .fillMaxSize()
-                                .offset(y = (-30).dp) 
+                                .offset(y = (-30).dp)
                                 .clickable { onDoorToggle() }
                         )
                     }
@@ -335,7 +337,7 @@ fun ControlButtons(
                 Text("EJECT", color = Color.White)
             }
         } else {
-            
+
         }
     }
 }
