@@ -165,7 +165,6 @@ fun MainScreen(exoPlayer: androidx.media3.exoplayer.ExoPlayer, context: android.
                     }
                 },
                 onCassetteDropped = { data ->
-                    // SONIDO: Cuando el cassette "encaja" al soltarlo
                     playSoundEffect(context, R.raw.closing_tape)
                     currentCassette = data
                     isDoorOpen = false
@@ -211,10 +210,7 @@ fun CassetteDeckSection(
     onPlayClick: () -> Unit,
     onCassetteDropped: (RetroCassetteData) -> Unit
 ) {
-
     RetroDropTarget<RetroCassetteData>(modifier = modifier.fillMaxSize()) { isInBound, data ->
-        val dragInfo = LocalRetroDragInfo.current
-
         val infiniteTransition = rememberInfiniteTransition(label = "reels")
         val rotation by infiniteTransition.animateFloat(
             initialValue = 0f,
@@ -222,85 +218,65 @@ fun CassetteDeckSection(
             animationSpec = infiniteRepeatable(
                 animation = tween(2000, easing = LinearEasing),
                 repeatMode = RepeatMode.Restart
-            ),
-            label = "rotation"
+            ), label = "rotation"
         )
 
         val cassetteScale by animateFloatAsState(
             targetValue = if (isPlaying) 1.05f else 1f,
-            animationSpec = if (isPlaying) {
-                infiniteRepeatable(tween(500), RepeatMode.Reverse)
-            } else {
-                tween(500)
-            }, label = ""
+            animationSpec = if (isPlaying) infiniteRepeatable(tween(500), RepeatMode.Reverse) else tween(500),
+            label = "scale"
         )
 
         LaunchedEffect(data) {
             data?.let { onCassetteDropped(it) }
         }
 
-        Box(
-            contentAlignment = Alignment.Center,
-            modifier = Modifier.fillMaxSize()
-        ) {
+        Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
             Box(modifier = Modifier.size(500.dp), contentAlignment = Alignment.Center) {
-                if (hasCassette) {
-                    Box(
-                        modifier = Modifier
-                            .size(240.dp)
-                            .offset(y = (-20).dp)
-                            .graphicsLayer(scaleX = cassetteScale, scaleY = cassetteScale),
-                        contentAlignment = Alignment.Center
-                    ) {
+
+                Image(
+                    painter = painterResource(id = R.drawable.tapa_abierta),
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize()
+                )
+
+                if (!isDoorOpen) {
+                    if (hasCassette) {
                         Image(
-                            painter = painterResource(id = R.drawable.cassette_unico),
+                            painter = painterResource(id = R.drawable.tapa_cerrada),
                             contentDescription = null,
-                            modifier = Modifier.fillMaxSize()
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .graphicsLayer(scaleX = 2.40f, scaleY = 2.40f) // (scaleX = 1.15f, scaleY = 1.15f) Efecto especial: más grande
+                                .offset(x = (-20).dp, y = (-17).dp)
+                                .clickable { onDoorToggle() }
                         )
 
-                        // Aquí colocamos los engranajes
-                        Row(
-                            modifier = Modifier.fillMaxWidth(0.46f).offset(y=-6.dp), // Ajusta este valor para que coincidan con los huecos
-                            horizontalArrangement = Arrangement.SpaceBetween
-
-                        ) {
-                            Engranaje(rotation = if (isPlaying) rotation else 0f)
-                            Engranaje(rotation = if (isPlaying) rotation else 0f)
-                        }
+                        CassetteVisual(cassetteScale, rotation, isPlaying)
+                    } else {
+                        Image(
+                            painter = painterResource(id = R.drawable.tapa_cerrada),
+                            contentDescription = null,
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .offset(y = (-30).dp) 
+                                .clickable { onDoorToggle() }
+                        )
                     }
-                }
+                } else {
+                    if (hasCassette) {
+                        CassetteVisual(cassetteScale, rotation, isPlaying)
+                    }
 
-                if (isDoorOpen) {
                     Image(
                         painter = painterResource(id = R.drawable.tapa_abierta),
                         contentDescription = null,
                         modifier = Modifier.fillMaxSize().clickable { onDoorToggle() }
                     )
-                } else {
-                    Row(
-                        modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 40.dp),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        if (hasCassette) {
-                            Button(
-                                onClick = onPlayClick,
-                                colors = ButtonDefaults.buttonColors(containerColor = if (isPlaying) Color.Red else Color.Green)
-                            ) {
-                                Text(if (isPlaying) "STOP" else "PLAY", color = Color.Black, fontWeight = FontWeight.Bold)
-                            }
+                }
 
-                            Button(
-                                onClick = onEject,
-                                colors = ButtonDefaults.buttonColors(containerColor = Color.Gray)
-                            ) {
-                                Text("EJECT", color = Color.White)
-                            }
-                        } else {
-                            Button(onClick = onDoorToggle, colors = ButtonDefaults.buttonColors(containerColor = Color.Magenta)) {
-                                Text("OPEN DECK", color = Color.White)
-                            }
-                        }
-                    }
+                if (!isDoorOpen && hasCassette) {
+                    ControlButtons(hasCassette, isPlaying, onPlayClick, onEject, onDoorToggle)
                 }
             }
         }
@@ -308,12 +284,69 @@ fun CassetteDeckSection(
 }
 
 @Composable
+fun BoxScope.CassetteVisual(scale: Float, rotation: Float, isPlaying: Boolean) {
+    Box(
+        modifier = Modifier
+            .size(240.dp)
+            .offset(y = (-20).dp)
+            .graphicsLayer(scaleX = scale, scaleY = scale),
+        contentAlignment = Alignment.Center
+    ) {
+        Image(
+            painter = painterResource(id = R.drawable.cassette_unico),
+            contentDescription = null,
+            modifier = Modifier.fillMaxSize()
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(0.46f).offset(y = (-6).dp),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Engranaje(rotation = if (isPlaying) rotation else 0f)
+            Engranaje(rotation = if (isPlaying) rotation else 0f)
+        }
+    }
+}
+
+@Composable
+fun ControlButtons(
+    hasCassette: Boolean,
+    isPlaying: Boolean,
+    onPlayClick: () -> Unit,
+    onEject: () -> Unit,
+    onDoorToggle: () -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxSize().padding(bottom = 40.dp),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.Bottom
+    ) {
+        if (hasCassette) {
+            Button(
+                onClick = onPlayClick,
+                colors = ButtonDefaults.buttonColors(containerColor = if (isPlaying) Color.Red else Color.Green)
+            ) {
+                Text(if (isPlaying) "STOP" else "PLAY", color = Color.Black, fontWeight = FontWeight.Bold)
+            }
+            Spacer(modifier = Modifier.width(16.dp))
+            Button(
+                onClick = onEject,
+                colors = ButtonDefaults.buttonColors(containerColor = Color.Gray)
+            ) {
+                Text("EJECT", color = Color.White)
+            }
+        } else {
+            
+        }
+    }
+}
+
+@Composable
 fun Engranaje(rotation: Float) {
     Image(
-        painter = painterResource(id = R.drawable.engranaje_cassette), // Tu nueva imagen
+        painter = painterResource(id = R.drawable.engranaje_cassette),
         contentDescription = null,
         modifier = Modifier
-            .size(27.dp) // Ajusta el tamaño al hueco del cassette
+            .size(27.dp)
             .graphicsLayer(rotationZ = rotation)
     )
 }
