@@ -18,6 +18,10 @@ implementations from now
 ## //---This is a work in progress---//
 This proyect will be uploaded the right way later, for now, this is just demo code
 
+<img width="329" height="733" alt="image" src="https://github.com/user-attachments/assets/ba3fd2ec-9969-4cf4-9532-09a4ed10d227" />
+
+
+
 package com.mariogc55.retrowave.player
 
 import android.os.Bundle
