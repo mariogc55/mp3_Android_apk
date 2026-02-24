@@ -15,6 +15,7 @@ Still in design
 This proyect will be uploaded the right way later, for now, this is just demo code
 
 <img width="328" height="728" alt="image" src="https://github.com/user-attachments/assets/69ce5022-6119-4b08-9a67-7a47be398ab8" />
+<img width="329" height="729" alt="image" src="https://github.com/user-attachments/assets/b6bac9e1-9ff3-4f33-8d6a-bf8d1cf0b3b4" />
 
 
 
