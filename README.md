@@ -14,7 +14,8 @@ Still in design
 ## //---This is a work in progress---//
 This proyect will be uploaded the right way later, for now, this is just demo code
 
-<img width="329" height="733" alt="image" src="https://github.com/user-attachments/assets/ba3fd2ec-9969-4cf4-9532-09a4ed10d227" />
+<img width="328" height="728" alt="image" src="https://github.com/user-attachments/assets/69ce5022-6119-4b08-9a67-7a47be398ab8" />
+
 
 
 
@@ -48,7 +49,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.media3.datasource.RawResourceDataSource
 import com.mariogc55.retrowave.player.ui.theme.RetroCassettePlayerTheme
-data class RetroCassetteData(val songResId: Int)
+
+data class RetroCassetteData(
+    val id: Int,
+    val title: String,
+    val songResId: Int,
+    val color: Color
+)
 
 class RetroDragInfo {
     var isDragging: Boolean by mutableStateOf(false)
@@ -87,11 +94,19 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+
 @Composable
 fun MainScreen(exoPlayer: androidx.media3.exoplayer.ExoPlayer, context: android.content.Context) {
-    var selectedSong by remember { mutableStateOf<Int?>(null) }
+    // Ahora guardamos el objeto completo, no solo el ID
+    var currentCassette by remember { mutableStateOf<RetroCassetteData?>(null) }
     var isDoorOpen by remember { mutableStateOf(false) }
     var isPlaying by remember { mutableStateOf(false) }
+
+    // Lista de tus cintas (Asegúrate de tener los archivos en res/raw)
+    val myTapes = listOf(
+        RetroCassetteData(1, "Hotline Miami", R.raw.hotline_miami, Color.Magenta),
+        RetroCassetteData(2, "Enemies", R.raw.enemies_by_bite_the_buffalo, Color.Cyan) // Añade tu segundo MP3 aquí
+    )
 
     Box(modifier = Modifier.fillMaxSize()) {
         Image(
@@ -104,13 +119,13 @@ fun MainScreen(exoPlayer: androidx.media3.exoplayer.ExoPlayer, context: android.
         Row(modifier = Modifier.fillMaxSize()) {
             LibrarySidebar(
                 modifier = Modifier.weight(0.3f),
-                onSongSelect = { songId -> selectedSong = songId }
+                tapes = myTapes // Pasamos la lista completa
             )
 
             CassetteDeckSection(
                 modifier = Modifier.weight(0.7f),
                 isDoorOpen = isDoorOpen,
-                hasCassette = selectedSong != null,
+                hasCassette = currentCassette != null,
                 isPlaying = isPlaying,
                 onDoorToggle = {
                     isDoorOpen = !isDoorOpen
@@ -119,31 +134,35 @@ fun MainScreen(exoPlayer: androidx.media3.exoplayer.ExoPlayer, context: android.
                         isPlaying = false
                     }
                 },
+                onEject = {
+                    // Lógica de expulsión
+                    exoPlayer.stop()
+                    isPlaying = false
+                    isDoorOpen = true
+                    currentCassette = null
+                },
                 onPlayClick = {
-                    if (selectedSong != null && !isDoorOpen) {
+                    if (currentCassette != null && !isDoorOpen) {
                         if (isPlaying) {
                             exoPlayer.stop()
                             isPlaying = false
                         } else {
                             try {
-                                val rawId = selectedSong!!
-                                val uriString = "android.resource://${context.packageName}/$rawId"
+                                val uriString = "android.resource://${context.packageName}/${currentCassette!!.songResId}"
                                 val mediaItem = androidx.media3.common.MediaItem.fromUri(uriString)
-
                                 exoPlayer.setMediaItem(mediaItem)
                                 exoPlayer.prepare()
                                 exoPlayer.play()
                                 isPlaying = true
                             } catch (e: Exception) {
-                                android.util.Log.e("RETRO_PLAYER", "Error: ${e.message}")
                                 isPlaying = false
                             }
                         }
                     }
                 },
-                onCassetteDropped = { songId ->
-                    selectedSong = songId
-                    isDoorOpen = true
+                onCassetteDropped = { data ->
+                    currentCassette = data
+                    isDoorOpen = false // Cerramos la tapa al insertar uno nuevo
                 }
             )
         }
@@ -151,19 +170,25 @@ fun MainScreen(exoPlayer: androidx.media3.exoplayer.ExoPlayer, context: android.
 }
 
 @Composable
-fun LibrarySidebar(modifier: Modifier, onSongSelect: (Int) -> Unit) {
+fun LibrarySidebar(modifier: Modifier, tapes: List<RetroCassetteData>) {
     Column(modifier = modifier.fillMaxHeight().background(Color.Black.copy(0.6f)).padding(16.dp)) {
-        Text("MY TAPES", color = Color.Cyan, fontSize = 20.sp)
+        Text("MY TAPES", color = Color.Cyan, fontSize = 20.sp, fontWeight = FontWeight.Bold)
         Spacer(modifier = Modifier.height(20.dp))
 
-        RetroDragTarget(dataToDrop = RetroCassetteData(R.raw.hotline_miami)) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Image(
-                    painter = painterResource(id = R.drawable.cassette_unico),
-                    contentDescription = null,
-                    modifier = Modifier.size(90.dp)
-                )
-                Text("Hotline Miami", color = Color.Magenta, fontSize = 12.sp)
+        tapes.forEach { tape ->
+            RetroDragTarget(dataToDrop = tape) {
+                Column(
+                    modifier = Modifier.padding(bottom = 16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Image(
+                        painter = painterResource(id = R.drawable.cassette_unico),
+                        contentDescription = null,
+                        modifier = Modifier.size(80.dp),
+
+                    )
+                    Text(tape.title, color = tape.color, fontSize = 10.sp)
+                }
             }
         }
     }
@@ -176,8 +201,9 @@ fun CassetteDeckSection(
     hasCassette: Boolean,
     isPlaying: Boolean,
     onDoorToggle: () -> Unit,
+    onEject: () -> Unit,
     onPlayClick: () -> Unit,
-    onCassetteDropped: (Int) -> Unit
+    onCassetteDropped: (RetroCassetteData) -> Unit
 ) {
     RetroDropTarget<RetroCassetteData>(modifier = modifier.fillMaxSize()) { isInBound, data ->
         val dragInfo = LocalRetroDragInfo.current
@@ -203,7 +229,7 @@ fun CassetteDeckSection(
         )
 
         LaunchedEffect(data) {
-            data?.let { onCassetteDropped(it.songResId) }
+            data?.let { onCassetteDropped(it) }
         }
 
         Box(
@@ -244,27 +270,28 @@ fun CassetteDeckSection(
                         modifier = Modifier.fillMaxSize().clickable { onDoorToggle() }
                     )
                 } else {
-                    if (hasCassette) {
-                        Button(
-                            onClick = onPlayClick,
-                            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 40.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = if (isPlaying) Color.Red else Color.Green
-                            )
-                        ) {
-                            Text(
-                                text = if (isPlaying) "STOP" else "PLAY",
-                                color = Color.Black,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                    } else {
-                        Button(
-                            onClick = onDoorToggle,
-                            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 40.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color.Magenta)
-                        ) {
-                            Text("OPEN DECK", color = Color.White)
+                    Row(
+                        modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 40.dp),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        if (hasCassette) {
+                            Button(
+                                onClick = onPlayClick,
+                                colors = ButtonDefaults.buttonColors(containerColor = if (isPlaying) Color.Red else Color.Green)
+                            ) {
+                                Text(if (isPlaying) "STOP" else "PLAY", color = Color.Black, fontWeight = FontWeight.Bold)
+                            }
+
+                            Button(
+                                onClick = onEject,
+                                colors = ButtonDefaults.buttonColors(containerColor = Color.Gray)
+                            ) {
+                                Text("EJECT", color = Color.White)
+                            }
+                        } else {
+                            Button(onClick = onDoorToggle, colors = ButtonDefaults.buttonColors(containerColor = Color.Magenta)) {
+                                Text("OPEN DECK", color = Color.White)
+                            }
                         }
                     }
                 }
