@@ -50,6 +50,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.media3.datasource.RawResourceDataSource
 import com.mariogc55.retrowave.player.ui.theme.RetroCassettePlayerTheme
 import android.media.MediaPlayer
+import androidx.compose.ui.zIndex
 
 data class RetroCassetteData(
     val id: Int,
@@ -121,10 +122,17 @@ fun MainScreen(exoPlayer: androidx.media3.exoplayer.ExoPlayer, context: android.
         )
 
         Row(modifier = Modifier.fillMaxSize()) {
-            LibrarySidebar(modifier = Modifier.weight(0.3f), tapes = myTapes)
+            LibrarySidebar(
+                modifier = Modifier
+                    .weight(0.3f)
+                    .zIndex(2f),
+                tapes = myTapes
+            )
 
             CassetteDeckSection(
-                modifier = Modifier.weight(0.7f),
+                modifier = Modifier
+                    .weight(0.7f)
+                    .zIndex(1f),
                 isDoorOpen = isDoorOpen,
                 hasCassette = currentCassette != null,
                 isPlaying = isPlaying,
@@ -148,7 +156,6 @@ fun MainScreen(exoPlayer: androidx.media3.exoplayer.ExoPlayer, context: android.
                 onPlayClick = {
                     if (currentCassette != null && !isDoorOpen) {
                         playSoundEffect(context, R.raw.press_button)
-
                         if (isPlaying) {
                             exoPlayer.stop()
                             isPlaying = false
@@ -178,7 +185,7 @@ fun MainScreen(exoPlayer: androidx.media3.exoplayer.ExoPlayer, context: android.
 
 @Composable
 fun LibrarySidebar(modifier: Modifier, tapes: List<RetroCassetteData>) {
-    Column(modifier = modifier.fillMaxHeight().background(Color.Black.copy(0.6f)).padding(16.dp)) {
+    Column(modifier = modifier.fillMaxHeight().background(Color.Black.copy(0.7f)).padding(16.dp).graphicsLayer(shadowElevation = 8f)) {
         Text("MY TAPES", color = Color.Cyan, fontSize = 20.sp, fontWeight = FontWeight.Bold)
         Spacer(modifier = Modifier.height(20.dp))
 
@@ -249,8 +256,8 @@ fun CassetteDeckSection(
                             contentDescription = null,
                             modifier = Modifier
                                 .fillMaxSize()
-                                .graphicsLayer(scaleX = 2.40f, scaleY = 2.40f) // (scaleX = 1.15f, scaleY = 1.15f) Efecto especial: más grande
-                                .offset(x = (-20).dp, y = (-17).dp)
+                                .graphicsLayer(scaleX = 1.75f, scaleY = 1.75f) // (scaleX = 1.15f, scaleY = 1.15f) Efecto especial: más grande
+                                .offset(x = (-23).dp, y = (-3).dp)
                                 .clickable { onDoorToggle() }
                         )
 
@@ -261,7 +268,7 @@ fun CassetteDeckSection(
                             contentDescription = null,
                             modifier = Modifier
                                 .fillMaxSize()
-                                .offset(y = (-30).dp)
+                                .offset(y = (-0).dp)
                                 .clickable { onDoorToggle() }
                         )
                     }
