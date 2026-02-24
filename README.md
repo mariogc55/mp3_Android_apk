@@ -182,6 +182,17 @@ fun CassetteDeckSection(
     RetroDropTarget<RetroCassetteData>(modifier = modifier.fillMaxSize()) { isInBound, data ->
         val dragInfo = LocalRetroDragInfo.current
 
+        val infiniteTransition = rememberInfiniteTransition(label = "reels")
+        val rotation by infiniteTransition.animateFloat(
+            initialValue = 0f,
+            targetValue = 360f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(2000, easing = LinearEasing),
+                repeatMode = RepeatMode.Restart
+            ),
+            label = "rotation"
+        )
+
         val cassetteScale by animateFloatAsState(
             targetValue = if (isPlaying) 1.05f else 1f,
             animationSpec = if (isPlaying) {
@@ -201,14 +212,29 @@ fun CassetteDeckSection(
         ) {
             Box(modifier = Modifier.size(500.dp), contentAlignment = Alignment.Center) {
                 if (hasCassette) {
-                    Image(
-                        painter = painterResource(id = R.drawable.cassette_unico),
-                        contentDescription = null,
+                    Box(
                         modifier = Modifier
                             .size(240.dp)
                             .offset(y = (-20).dp)
-                            .graphicsLayer(scaleX = cassetteScale, scaleY = cassetteScale) // Vibra si suena
-                    )
+                            .graphicsLayer(scaleX = cassetteScale, scaleY = cassetteScale),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Image(
+                            painter = painterResource(id = R.drawable.cassette_unico),
+                            contentDescription = null,
+                            modifier = Modifier.fillMaxSize()
+                        )
+
+                        // Aquí colocamos los engranajes
+                        Row(
+                            modifier = Modifier.fillMaxWidth(0.46f).offset(y=-6.dp), // Ajusta este valor para que coincidan con los huecos
+                            horizontalArrangement = Arrangement.SpaceBetween
+
+                        ) {
+                            Engranaje(rotation = if (isPlaying) rotation else 0f)
+                            Engranaje(rotation = if (isPlaying) rotation else 0f)
+                        }
+                    }
                 }
 
                 if (isDoorOpen) {
@@ -245,6 +271,17 @@ fun CassetteDeckSection(
             }
         }
     }
+}
+
+@Composable
+fun Engranaje(rotation: Float) {
+    Image(
+        painter = painterResource(id = R.drawable.engranaje_cassette), // Tu nueva imagen
+        contentDescription = null,
+        modifier = Modifier
+            .size(27.dp) // Ajusta el tamaño al hueco del cassette
+            .graphicsLayer(rotationZ = rotation)
+    )
 }
 
 @Composable
