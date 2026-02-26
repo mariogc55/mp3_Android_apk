@@ -18,6 +18,9 @@ This proyect will be uploaded the right way later, for now, this is just demo co
 <img width="329" height="729" alt="image" src="https://github.com/user-attachments/assets/b6bac9e1-9ff3-4f33-8d6a-bf8d1cf0b3b4" />
 
 
+## Testing new design, the code is from the previous design
+<img width="411" height="690" alt="image" src="https://github.com/user-attachments/assets/aaaf5f6b-2388-4663-a2d0-ca7398de5dec" />
+
 
 
 package com.mariogc55.retrowave.player
