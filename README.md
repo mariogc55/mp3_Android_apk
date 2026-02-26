@@ -20,6 +20,7 @@ This proyect will be uploaded the right way later, for now, this is just demo co
 
 ## Testing new design, the code is from the previous design
 <img width="411" height="690" alt="image" src="https://github.com/user-attachments/assets/aaaf5f6b-2388-4663-a2d0-ca7398de5dec" />
+<img width="411" height="691" alt="image" src="https://github.com/user-attachments/assets/d931cd7b-38d9-4593-9eff-e22b25a9aa02" />
 
 
 
