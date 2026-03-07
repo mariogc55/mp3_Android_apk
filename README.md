@@ -8,7 +8,6 @@ still in progress for:
 -code
 -more sounds (maybe)
 -better UI/UX
--
 
 
 <img width="1024" height="1024" alt="cassette_unico" src="https://github.com/user-attachments/assets/3a1045a5-874e-45fc-8c87-c189a1605340" />
