@@ -12,6 +12,12 @@ still in progress for:
 
 <img width="1024" height="1024" alt="cassette_unico" src="https://github.com/user-attachments/assets/3a1045a5-874e-45fc-8c87-c189a1605340" />
 
+## planning on adding more cassette designs
+
+<img width="800" height="800" alt="image" src="https://github.com/user-attachments/assets/8df5120a-cf98-4b7d-a307-366f78f0afef" />
+
+
+
 ## //---This is a work in progress---//
 This proyect will be uploaded the right way later, for now, this is just demo code
 
