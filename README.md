@@ -16,8 +16,6 @@ still in progress for:
 
 <img width="800" height="800" alt="image" src="https://github.com/user-attachments/assets/8df5120a-cf98-4b7d-a307-366f78f0afef" />
 
-
-
 ## //---This is a work in progress---//
 This proyect will be uploaded the right way later, for now, this is just demo code
 
@@ -29,10 +27,6 @@ This proyect will be uploaded the right way later, for now, this is just demo co
 <img width="411" height="691" alt="image" src="https://github.com/user-attachments/assets/d931cd7b-38d9-4593-9eff-e22b25a9aa02" />
 
 ### The code will be updated when the proyect is continued
-
-## new bottons
-
-
 
 package com.mariogc55.retrowave.player
 
