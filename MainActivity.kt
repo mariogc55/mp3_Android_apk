@@ -29,14 +29,17 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.ContentScale.Companion.Crop
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -65,6 +68,62 @@ class RetroDragInfo {
 }
 
 val LocalRetroDragInfo = compositionLocalOf { RetroDragInfo() }
+
+@Composable
+fun MarqueeText(
+    text: String,
+    modifier: Modifier = Modifier,
+    color: Color = Color.Cyan,
+    fontSize: androidx.compose.ui.unit.TextUnit = 20.sp,
+    fontWeight: FontWeight = FontWeight.Bold
+) {
+    val scrollState = rememberScrollState()
+    var shouldAnimate by remember { mutableStateOf(false) }
+
+
+    LaunchedEffect(text) {
+        scrollState.scrollTo(0)
+        delay(1000)
+        shouldAnimate = true
+    }
+
+    if (shouldAnimate) {
+        LaunchedEffect(key1 = shouldAnimate, key2 = text) {
+            while (true) {
+                if (scrollState.value < scrollState.maxValue) {
+                    scrollState.animateScrollTo(
+                        scrollState.maxValue,
+                        animationSpec = tween(
+                            durationMillis = (scrollState.maxValue * 20).coerceAtLeast(2000),
+                            easing = LinearEasing
+                        )
+                    )
+                    delay(1500)
+                    scrollState.scrollTo(0)
+                    delay(1000)
+                } else {
+                    break
+                }
+            }
+        }
+    }
+
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .horizontalScroll(scrollState, false)
+    ) {
+        Text(
+            text = text,
+            color = color,
+            fontSize = fontSize,
+            fontWeight = fontWeight,
+            maxLines = 1,
+            overflow = TextOverflow.Visible,
+            modifier = Modifier.padding(horizontal = 20.dp)
+        )
+    }
+}
 
 class MainActivity : ComponentActivity() {
     private lateinit var exoPlayer: ExoPlayer
@@ -115,7 +174,6 @@ fun MainScreen(exoPlayer: ExoPlayer, context: Context) {
         if (searchQuery.isEmpty()) myTapes
         else myTapes.filter { it.title.contains(searchQuery, ignoreCase = true) }
     }
-
 
     val prepareAndPlay = { tape: RetroCassetteData ->
         try {
@@ -200,7 +258,7 @@ fun MainScreen(exoPlayer: ExoPlayer, context: Context) {
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        Image(painter = painterResource(id = R.drawable.fondo_reproductor), contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+        Image(painter = painterResource(id = R.drawable.fondo_reproductor), contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = Crop)
 
         Column(modifier = Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
             val status = when {
@@ -210,7 +268,10 @@ fun MainScreen(exoPlayer: ExoPlayer, context: Context) {
                 isDoorOpen -> "DOOR OPEN"
                 else -> "PAUSED"
             }
-            Text(text = status, color = Color.Cyan, fontSize = 20.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 40.dp, start = 20.dp, end = 20.dp), maxLines = 1)
+
+            Box(modifier = Modifier.padding(top = 40.dp).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                MarqueeText(text = status)
+            }
 
             Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -290,7 +351,6 @@ fun MainScreen(exoPlayer: ExoPlayer, context: Context) {
                 onSearchChange = { searchQuery = it },
                 onToggleExpand = { isLibraryExpanded = !isLibraryExpanded },
                 onTapeSelected = { tape ->
-
                     currentCassette = tape
                     isDoorOpen = false
                     prepareAndPlay(tape)
@@ -306,54 +366,16 @@ fun MainScreen(exoPlayer: ExoPlayer, context: Context) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun LibraryOverlay(
-    tapes: List<RetroCassetteData>,
-    isExpanded: Boolean,
-    searchQuery: String,
-    onSearchChange: (String) -> Unit,
-    onToggleExpand: () -> Unit,
-    onTapeSelected: (RetroCassetteData) -> Unit,
-    onClose: () -> Unit
-) {
+fun LibraryOverlay(tapes: List<RetroCassetteData>, isExpanded: Boolean, searchQuery: String, onSearchChange: (String) -> Unit, onToggleExpand: () -> Unit, onTapeSelected: (RetroCassetteData) -> Unit, onClose: () -> Unit) {
     Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(0.8f)).clickable { onClose() }, contentAlignment = Alignment.BottomCenter) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth(if (isExpanded) 1f else 0.95f)
-                .fillMaxHeight(if (isExpanded) 0.85f else 0.45f)
-                .background(Color(0xFF121212), shape = MaterialTheme.shapes.large)
-                .padding(20.dp).clickable(enabled = false) {}
-        ) {
+        Column(modifier = Modifier.fillMaxWidth(if (isExpanded) 1f else 0.95f).fillMaxHeight(if (isExpanded) 0.85f else 0.45f).background(Color(0xFF121212), shape = MaterialTheme.shapes.large).padding(20.dp).clickable(enabled = false) {}) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text("YOUR MIXTAPES (${tapes.size})", color = Color.Cyan, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-                IconButton(onClick = onToggleExpand) {
-                    Icon(if (isExpanded) Icons.Default.Close else Icons.Default.Add, contentDescription = null, tint = Color.Cyan)
-                }
+                IconButton(onClick = onToggleExpand) { Icon(if (isExpanded) Icons.Default.Close else Icons.Default.Add, contentDescription = null, tint = Color.Cyan) }
             }
-
-            OutlinedTextField(
-                value = searchQuery,
-                onValueChange = onSearchChange,
-                modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp),
-                placeholder = { Text("Search song...", color = Color.Gray) },
-                singleLine = true,
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = Color.Magenta,
-                    unfocusedBorderColor = Color.Cyan,
-                    focusedTextColor = Color.White,
-                    unfocusedTextColor = Color.LightGray,
-                    cursorColor = Color.Magenta
-                )
-            )
-
-            if (isExpanded) {
-                LazyVerticalGrid(columns = GridCells.Fixed(2), contentPadding = PaddingValues(10.dp), verticalArrangement = Arrangement.spacedBy(20.dp), horizontalArrangement = Arrangement.spacedBy(20.dp)) {
-                    items(tapes) { tape -> TapeItem(tape, onTapeSelected) }
-                }
-            } else {
-                Row(modifier = Modifier.horizontalScroll(rememberScrollState())) {
-                    tapes.forEach { tape -> Box(modifier = Modifier.padding(end = 15.dp)) { TapeItem(tape, onTapeSelected) } }
-                }
-            }
+            OutlinedTextField(value = searchQuery, onValueChange = onSearchChange, modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp), placeholder = { Text("Search song...", color = Color.Gray) }, singleLine = true, colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = Color.Magenta, unfocusedBorderColor = Color.Cyan, focusedTextColor = Color.White, unfocusedTextColor = Color.LightGray, cursorColor = Color.Magenta))
+            if (isExpanded) { LazyVerticalGrid(columns = GridCells.Fixed(2), contentPadding = PaddingValues(10.dp), verticalArrangement = Arrangement.spacedBy(20.dp), horizontalArrangement = Arrangement.spacedBy(20.dp)) { items(tapes) { tape -> TapeItem(tape, onTapeSelected) } } }
+            else { Row(modifier = Modifier.horizontalScroll(rememberScrollState())) { tapes.forEach { tape -> Box(modifier = Modifier.padding(end = 15.dp)) { TapeItem(tape, onTapeSelected) } } } }
         }
     }
 }
@@ -369,17 +391,12 @@ fun TapeItem(tape: RetroCassetteData, onTapeSelected: (RetroCassetteData) -> Uni
 }
 
 @Composable
-fun PlayerButton(resId: Int, onClick: () -> Unit) {
-    Image(painter = painterResource(id = resId), contentDescription = null, modifier = Modifier.size(65.dp).clickable { onClick() })
-}
+fun PlayerButton(resId: Int, onClick: () -> Unit) { Image(painter = painterResource(id = resId), contentDescription = null, modifier = Modifier.size(65.dp).clickable { onClick() }) }
 
 @Composable
 fun CassetteDeckSection(modifier: Modifier, isDoorOpen: Boolean, hasCassette: Boolean, isPlaying: Boolean, isRewinding: Boolean, onDoorToggle: () -> Unit, onCassetteDropped: (RetroCassetteData) -> Unit) {
     RetroDropTarget<RetroCassetteData>(modifier = modifier) { _, data ->
-        val rotation by rememberInfiniteTransition().animateFloat(
-            initialValue = 0f, targetValue = if (isRewinding) -360f else 360f,
-            animationSpec = infiniteRepeatable(animation = tween(if (isRewinding) 400 else 2000, easing = LinearEasing)), label = ""
-        )
+        val rotation by rememberInfiniteTransition().animateFloat(initialValue = 0f, targetValue = if (isRewinding) -360f else 360f, animationSpec = infiniteRepeatable(animation = tween(if (isRewinding) 400 else 2000, easing = LinearEasing)), label = "")
         LaunchedEffect(data) { data?.let { onCassetteDropped(it) } }
         Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
             Image(painter = painterResource(id = R.drawable.tapa_abierta), contentDescription = null)
@@ -402,31 +419,19 @@ fun BoxScope.CassetteVisual(rotation: Float, isMoving: Boolean, alpha: Float) {
 }
 
 @Composable
-fun Engranaje(rotation: Float) {
-    Image(painter = painterResource(id = R.drawable.engranaje_cassette), contentDescription = null, modifier = Modifier.size(27.dp).graphicsLayer(rotationZ = rotation))
-}
+fun Engranaje(rotation: Float) { Image(painter = painterResource(id = R.drawable.engranaje_cassette), contentDescription = null, modifier = Modifier.size(27.dp).graphicsLayer(rotationZ = rotation)) }
 
 @Composable
 fun <T> RetroDragTarget(modifier: Modifier = Modifier, dataToDrop: T, content: @Composable (() -> Unit)) {
     val state = LocalRetroDragInfo.current
-    Box(modifier = modifier.onGloballyPositioned { state.dragPosition = it.localToWindow(androidx.compose.ui.geometry.Offset.Zero) }
-        .pointerInput(Unit) {
-            detectDragGesturesAfterLongPress(
-                onDragStart = { state.dataToDrop = dataToDrop; state.isDragging = true; state.dragOffset = it; state.draggableComposable = content },
-                onDrag = { change, dragAmount -> change.consume(); state.dragOffset += dragAmount },
-                onDragEnd = { state.isDragging = false }
-            )
-        }) { content() }
+    Box(modifier = modifier.onGloballyPositioned { state.dragPosition = it.localToWindow(androidx.compose.ui.geometry.Offset.Zero) }.pointerInput(Unit) { detectDragGesturesAfterLongPress(onDragStart = { state.dataToDrop = dataToDrop; state.isDragging = true; state.dragOffset = it; state.draggableComposable = content }, onDrag = { change, dragAmount -> change.consume(); state.dragOffset += dragAmount }, onDragEnd = { state.isDragging = false }) }) { content() }
 }
 
 @Composable
 fun <T> RetroDropTarget(modifier: Modifier, content: @Composable (BoxScope.(isInBound: Boolean, data: T?) -> Unit)) {
     val dragInfo = LocalRetroDragInfo.current
     var isCurrentTarget by remember { mutableStateOf(false) }
-    Box(modifier = modifier.onGloballyPositioned {
-        val rect = it.boundsInWindow()
-        isCurrentTarget = rect.contains(dragInfo.dragPosition + dragInfo.dragOffset)
-    }) { content(isCurrentTarget, if (isCurrentTarget && !dragInfo.isDragging) dragInfo.dataToDrop as? T else null) }
+    Box(modifier = modifier.onGloballyPositioned { val rect = it.boundsInWindow(); isCurrentTarget = rect.contains(dragInfo.dragPosition + dragInfo.dragOffset) }) { content(isCurrentTarget, if (isCurrentTarget && !dragInfo.isDragging) dragInfo.dataToDrop as? T else null) }
 }
 
 @Composable
@@ -437,11 +442,7 @@ fun RetroLongPressDraggable(modifier: Modifier = Modifier, content: @Composable 
             content()
             if (state.isDragging) {
                 var size by remember { mutableStateOf(IntSize.Zero) }
-                Box(modifier = Modifier.graphicsLayer {
-                    translationX = (state.dragPosition.x + state.dragOffset.x) - size.width / 2
-                    translationY = (state.dragPosition.y + state.dragOffset.y) - size.height / 2
-                    alpha = 0.7f; scaleX = 1.1f; scaleY = 1.1f
-                }.onGloballyPositioned { size = it.size }) { state.draggableComposable?.invoke() }
+                Box(modifier = Modifier.graphicsLayer { translationX = (state.dragPosition.x + state.dragOffset.x) - size.width / 2; translationY = (state.dragPosition.y + state.dragOffset.y) - size.height / 2; alpha = 0.7f; scaleX = 1.1f; scaleY = 1.1f }.onGloballyPositioned { size = it.size }) { state.draggableComposable?.invoke() }
             }
         }
     }
