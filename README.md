@@ -10,7 +10,7 @@ still in progress for:
 -better UI/UX
 
 
-<img width="1024" height="1024" alt="cassette_unico" src="https://github.com/user-attachments/assets/3a1045a5-874e-45fc-8c87-c189a1605340" />
+<img width="500" height="500" alt="cassette_unico" src="https://github.com/user-attachments/assets/3a1045a5-874e-45fc-8c87-c189a1605340" />
 
 ## planning on adding more cassette designs
 
@@ -20,11 +20,6 @@ still in progress for:
 
 ## //---This is a work in progress---//
 This proyect will be uploaded the right way later, for now, this is just demo code
-
-## Version 1
-
-<img width="328" height="728" alt="image" src="https://github.com/user-attachments/assets/69ce5022-6119-4b08-9a67-7a47be398ab8" />
-<img width="329" height="729" alt="image" src="https://github.com/user-attachments/assets/b6bac9e1-9ff3-4f33-8d6a-bf8d1cf0b3b4" />
 
 
 ## Testing new design, the code is from the previous design
