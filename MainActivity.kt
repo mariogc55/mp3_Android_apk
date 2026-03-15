@@ -84,7 +84,6 @@ fun MainScreen(exoPlayer: androidx.media3.exoplayer.ExoPlayer, context: android.
     var isRewinding by remember { mutableStateOf(false) }
     var showLibrary by remember { mutableStateOf(false) }
 
-    // Función unificada para Play/Stop
     val togglePlay = {
         if (currentCassette != null && !isDoorOpen) {
             playSoundEffect(context, R.raw.press_button)
@@ -175,7 +174,6 @@ fun MainScreen(exoPlayer: androidx.media3.exoplayer.ExoPlayer, context: android.
                 )
             }
 
-            // BOTONERA INFERIOR CONFIGURADA
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -183,10 +181,10 @@ fun MainScreen(exoPlayer: androidx.media3.exoplayer.ExoPlayer, context: android.
                 horizontalArrangement = Arrangement.SpaceEvenly,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // START
+
                 PlayerButton(R.drawable.btn_start) { togglePlay() }
 
-                // STOP
+
                 PlayerButton(R.drawable.btn_stop) {
                     if (isPlaying || isRewinding) {
                         playSoundEffect(context, R.raw.press_button)
@@ -196,7 +194,6 @@ fun MainScreen(exoPlayer: androidx.media3.exoplayer.ExoPlayer, context: android.
                     }
                 }
 
-                // REWIND
                 PlayerButton(R.drawable.btn_rewind) {
                     if (currentCassette != null && !isDoorOpen) {
                         playSoundEffect(context, R.raw.rewinding_cassette)
@@ -206,7 +203,6 @@ fun MainScreen(exoPlayer: androidx.media3.exoplayer.ExoPlayer, context: android.
                     }
                 }
 
-                // EJECT
                 PlayerButton(R.drawable.btn_eject) {
                     if (currentCassette != null) {
                         isDoorOpen = true
@@ -218,7 +214,6 @@ fun MainScreen(exoPlayer: androidx.media3.exoplayer.ExoPlayer, context: android.
                     }
                 }
 
-                // MENU
                 PlayerButton(R.drawable.btn_menu) {
                     showLibrary = !showLibrary
                 }
@@ -260,7 +255,7 @@ fun PlayerButton(resId: Int, onClick: () -> Unit) {
         painter = painterResource(id = resId),
         contentDescription = null,
         modifier = Modifier
-            .size(65.dp) // Un poco más grande para facilitar el toque
+            .size(65.dp)
             .clickable { onClick() }
     )
 }
@@ -278,7 +273,6 @@ fun CassetteDeckSection(
     onCassetteDropped: (RetroCassetteData) -> Unit
 ) {
     RetroDropTarget<RetroCassetteData>(modifier = modifier.fillMaxSize()) { isInBound, data ->
-        // Animación de rotación: Normal para Play, rápida y reversa para Rewind
         val infiniteTransition = rememberInfiniteTransition(label = "reels")
         val rotation by infiniteTransition.animateFloat(
             initialValue = 0f,
@@ -306,7 +300,6 @@ fun CassetteDeckSection(
                                 .fillMaxSize()
                                 .clickable { onDoorToggle() }
                         )
-                        // He quitado el scaleX/scaleY dinámico aquí para evitar el efecto raro
                         CassetteVisual(rotation, isPlaying || isRewinding)
                     } else {
                         Image(
@@ -347,7 +340,7 @@ fun LibraryOverlay(tapes: List<RetroCassetteData>, onTapeSelected: (RetroCassett
             .fillMaxWidth()
             .background(Color.DarkGray.copy(0.9f), shape = MaterialTheme.shapes.large)
             .padding(24.dp)
-            .clickable(enabled = false) { } // Evita que el clic pase al fondo
+            .clickable(enabled = false) { }
     ) {
         Text(
             "SELECT YOUR MIXTAPE",
@@ -380,8 +373,6 @@ fun LibraryOverlay(tapes: List<RetroCassetteData>, onTapeSelected: (RetroCassett
         Spacer(modifier = Modifier.height(20.dp))
     }
 }
-
-// ... (Resto de componentes: CassetteDeckSection, CassetteVisual, Engranaje, RetroDragTarget, etc., se mantienen igual que en tu código anterior)
 
 @Composable
 fun CassetteDeckSection(
