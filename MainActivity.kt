@@ -116,6 +116,7 @@ fun MainScreen(exoPlayer: ExoPlayer, context: Context) {
         else myTapes.filter { it.title.contains(searchQuery, ignoreCase = true) }
     }
 
+
     val prepareAndPlay = { tape: RetroCassetteData ->
         try {
             exoPlayer.stop()
