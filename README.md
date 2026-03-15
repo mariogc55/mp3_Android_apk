@@ -26,4 +26,6 @@ This proyect will be uploaded the right way later, for now, this is just demo co
 
 ### The code will be updated when the proyect is continued
 
-<img width="500" height="500" alt="cassette_unico" src="https://github.com/user-attachments/assets/3a1045a5-874e-45fc-8c87-c189a1605340" />
+
+
+
