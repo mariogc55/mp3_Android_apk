@@ -35,6 +35,10 @@ This proyect will be uploaded the right way later, for now, this is just demo co
 
 ### The code will be updated when the proyect is continued
 
+## new bottons
+
+
+
 package com.mariogc55.retrowave.player
 
 import android.os.Bundle
@@ -452,3 +456,9 @@ fun RetroLongPressDraggable(modifier: Modifier = Modifier, content: @Composable 
         }
     }
 }
+
+
+
+
+
+
