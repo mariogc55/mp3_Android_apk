@@ -20,13 +20,13 @@ still in progress for:
 This proyect will be uploaded the right way later, for now, this is just demo code
 
 
-## Testing new design, the code is from the previous design
-
 ## Version 2
 <img width="411" height="690" alt="image" src="https://github.com/user-attachments/assets/aaaf5f6b-2388-4663-a2d0-ca7398de5dec" />
 <img width="411" height="691" alt="image" src="https://github.com/user-attachments/assets/d931cd7b-38d9-4593-9eff-e22b25a9aa02" />
 
 ### The code will be updated when the proyect is continued
+
+<img width="500" height="500" alt="cassette_unico" src="https://github.com/user-attachments/assets/3a1045a5-874e-45fc-8c87-c189a1605340" />
 
 package com.mariogc55.retrowave.player
 
