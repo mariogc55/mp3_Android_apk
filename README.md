@@ -1,6 +1,6 @@
 # mp3_Android_apk
-Trying to create an mp3 in android studio
-for now, only the MainActivity.kt will be in this repositori, soon the apk will be avariable
+#### Trying to create an mp3 in android studio
+#### for now, only the MainActivity.kt will be in this repositori, soon the apk will be avariable
 
 //--WORK IN PROGRESS--//
 still in progress for:
