@@ -1,6 +1,6 @@
 # mp3_Android_apk
 #### Trying to create an mp3 in android studio
-#### for now, only the MainActivity.kt will be in this repositori, soon the apk will be avariable
+#### for now, only the MainActivity.kt will be in this repository, soon the apk will be avariable
 
 //--WORK IN PROGRESS--//
 still in progress for:
@@ -23,9 +23,5 @@ This proyect will be uploaded the right way later, for now, this is just demo co
 ## Version 2
 <img width="411" height="690" alt="image" src="https://github.com/user-attachments/assets/aaaf5f6b-2388-4663-a2d0-ca7398de5dec" />
 <img width="411" height="691" alt="image" src="https://github.com/user-attachments/assets/d931cd7b-38d9-4593-9eff-e22b25a9aa02" />
-
-### The code will be updated when the proyect is continued
-
-
 
 
