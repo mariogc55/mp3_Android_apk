@@ -27,3 +27,5 @@ This proyect will be uploaded the right way later, for now, this is just demo co
 ## Version 3 is now on MainActivity.kt 
 #### The whole programm has been updated with new buttons and menu but github is not letting me add images about it
 
+<img width="411" height="1200" alt="image" src="https://github.com/user-attachments/assets/43602f0e-f6ef-4b22-8356-db4d41028aa8" />
+
