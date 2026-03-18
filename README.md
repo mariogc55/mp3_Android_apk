@@ -29,3 +29,8 @@ This proyect will be uploaded the right way later, for now, this is just demo co
 
 <img width="411" height="1200" alt="image" src="https://github.com/user-attachments/assets/43602f0e-f6ef-4b22-8356-db4d41028aa8" />
 
+<img width="411" height="1200" alt="image" src="https://github.com/user-attachments/assets/b658709e-9c5a-4473-a23b-b5657fa72f7e" />
+
+<img width="411" height="1200" alt="image" src="https://github.com/user-attachments/assets/df6dff3b-12b9-4741-9199-66aa9cc95dbe" />
+
+<img width="411" height="1200" alt="image" src="https://github.com/user-attachments/assets/e02d16c4-d66e-4bf2-91b3-d704afdf7635" />
