@@ -2,12 +2,12 @@
 #### Trying to create an mp3 in android studio
 #### for now, only the MainActivity.kt will be in this repository, soon the apk will be avariable
 
-//--WORK IN PROGRESS--//
-still in progress for:
--dessign improve
--code
--more sounds (maybe)
--better UI/UX
+### //--WORK IN PROGRESS--//
+#### still in progress for:
+- dessign improve
+- more sounds
+- better UI/UX
+- bug fixes
 
 
 <img width="500" height="500" alt="cassette_unico" src="https://github.com/user-attachments/assets/3a1045a5-874e-45fc-8c87-c189a1605340" />
