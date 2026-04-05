@@ -47,3 +47,6 @@ This proyect will be uploaded the right way later, for now, this is just demo co
 
 <img width="411" height="1200" alt="image" src="https://github.com/user-attachments/assets/1e42aea6-8ca9-4480-81d2-fddb537f6f09" />
 
+#### this app is mostly for phones, but works in tablets too
+
+<img width="411" height="1200" alt="image" src="https://github.com/user-attachments/assets/e9b8d27a-f4b2-4ce6-88dd-63b7ddee4e00" />
