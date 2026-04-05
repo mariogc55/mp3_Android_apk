@@ -1,8 +1,12 @@
 package com.mariogc55.retrowave.player
 
 import android.Manifest
+import android.app.Notification
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.Context
-import android.content.pm.PackageManager
+import android.content.Intent
 import android.media.MediaPlayer
 import android.net.Uri
 import android.os.Build
@@ -29,6 +33,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
@@ -41,15 +46,76 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.content.ContextCompat
+import androidx.core.app.NotificationCompat
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.session.MediaSession
+import androidx.media3.session.MediaSessionService
 import kotlinx.coroutines.delay
 import com.mariogc55.retrowave.player.ui.theme.RetroCassettePlayerTheme
 
+// --- SERVICIO DE REPRODUCCIÓN ---
+class PlaybackService : MediaSessionService() {
+    private var mediaSession: MediaSession? = null
+
+    companion object {
+        const val CHANNEL_ID = "retrowave_player_channel"
+        const val NOTIFICATION_ID = 101
+        var playerInstance: ExoPlayer? = null
+    }
+
+    override fun onCreate() {
+        super.onCreate()
+        if (playerInstance == null) {
+            playerInstance = ExoPlayer.Builder(this).build()
+        }
+        mediaSession = MediaSession.Builder(this, playerInstance!!).build()
+
+        createNotificationChannel()
+        startForeground(NOTIFICATION_ID, createNotification())
+    }
+
+    private fun createNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                CHANNEL_ID, "Retrowave Playback",
+                NotificationManager.IMPORTANCE_LOW
+            )
+            val manager = getSystemService(NotificationManager::class.java)
+            manager.createNotificationChannel(channel)
+        }
+    }
+
+    private fun createNotification(): Notification {
+        val intent = Intent(this, MainActivity::class.java)
+        val pendingIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_IMMUTABLE)
+
+        return NotificationCompat.Builder(this, CHANNEL_ID)
+            .setContentTitle("Retrowave Player")
+            .setContentText("Reproduciendo tu mixtape...")
+            .setSmallIcon(R.drawable.cassette_unico)
+            .setOngoing(true)
+            .setContentIntent(pendingIntent)
+            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .build()
+    }
+
+    override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? = mediaSession
+
+    override fun onDestroy() {
+        mediaSession?.run {
+            player.release()
+            release()
+            mediaSession = null
+            playerInstance = null
+        }
+        super.onDestroy()
+    }
+}
+
+// --- MODELOS ---
 data class RetroCassetteData(
     val id: Long,
     val title: String,
@@ -60,8 +126,8 @@ data class RetroCassetteData(
 
 class RetroDragInfo {
     var isDragging: Boolean by mutableStateOf(false)
-    var dragPosition by mutableStateOf(androidx.compose.ui.geometry.Offset.Zero)
-    var dragOffset by mutableStateOf(androidx.compose.ui.geometry.Offset.Zero)
+    var dragPosition by mutableStateOf(Offset.Zero)
+    var dragOffset by mutableStateOf(Offset.Zero)
     var draggableComposable by mutableStateOf<(@Composable () -> Unit)?>(null)
     var dataToDrop by mutableStateOf<Any?>(null)
 }
@@ -69,102 +135,67 @@ class RetroDragInfo {
 val LocalRetroDragInfo = compositionLocalOf { RetroDragInfo() }
 
 @Composable
-fun MarqueeText(
-    text: String,
-    modifier: Modifier = Modifier,
-    color: Color = Color.Cyan,
-    fontSize: androidx.compose.ui.unit.TextUnit = 20.sp,
-    fontWeight: FontWeight = FontWeight.Bold
-) {
+fun MarqueeText(text: String, modifier: Modifier = Modifier, color: Color = Color.Cyan, fontSize: androidx.compose.ui.unit.TextUnit = 20.sp, fontWeight: FontWeight = FontWeight.Bold) {
     val scrollState = rememberScrollState()
     var shouldAnimate by remember { mutableStateOf(false) }
-
-    LaunchedEffect(text) {
-        scrollState.scrollTo(0)
-        delay(1000)
-        shouldAnimate = true
-    }
-
+    LaunchedEffect(text) { scrollState.scrollTo(0); delay(1000); shouldAnimate = true }
     if (shouldAnimate) {
         LaunchedEffect(key1 = shouldAnimate, key2 = text) {
             while (true) {
                 if (scrollState.value < scrollState.maxValue) {
-                    scrollState.animateScrollTo(
-                        scrollState.maxValue,
-                        animationSpec = tween(
-                            durationMillis = (scrollState.maxValue * 20).coerceAtLeast(2000),
-                            easing = LinearEasing
-                        )
-                    )
-                    delay(1500)
-                    scrollState.scrollTo(0)
-                    delay(1000)
-                } else {
-                    break
-                }
+                    scrollState.animateScrollTo(scrollState.maxValue, animationSpec = tween((scrollState.maxValue * 20).coerceAtLeast(2000), easing = LinearEasing))
+                    delay(1500); scrollState.scrollTo(0); delay(1000)
+                } else break
             }
         }
     }
-
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .horizontalScroll(scrollState, false)
-    ) {
-        Text(
-            text = text,
-            color = color,
-            fontSize = fontSize,
-            fontWeight = fontWeight,
-            maxLines = 1,
-            overflow = TextOverflow.Visible,
-            modifier = Modifier.padding(horizontal = 20.dp)
-        )
+    Row(modifier = modifier.fillMaxWidth().horizontalScroll(scrollState, false)) {
+        Text(text = text, color = color, fontSize = fontSize, fontWeight = fontWeight, maxLines = 1, overflow = TextOverflow.Visible, modifier = Modifier.padding(horizontal = 20.dp))
     }
 }
 
 class MainActivity : ComponentActivity() {
     private var exoPlayer: ExoPlayer? = null
-    private var mediaSession: MediaSession? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        exoPlayer = ExoPlayer.Builder(this).build().apply {
-            volume = 1.0f
+        if (PlaybackService.playerInstance == null) {
+            PlaybackService.playerInstance = ExoPlayer.Builder(this).build()
         }
-
-        mediaSession = MediaSession.Builder(this, exoPlayer!!).build()
-
+        exoPlayer = PlaybackService.playerInstance
         enableEdgeToEdge()
         setContent {
             RetroCassettePlayerTheme {
                 RetroLongPressDraggable(modifier = Modifier.fillMaxSize()) {
                     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-                        MainScreen(exoPlayer = exoPlayer!!, context = this@MainActivity)
+                        MainScreen(exoPlayer = exoPlayer!!, context = this@MainActivity) { startPlaybackService() }
                     }
                 }
             }
         }
     }
 
-    override fun onDestroy() {
-        super.onDestroy()
-        mediaSession?.release()
-        exoPlayer?.release()
-        mediaSession = null
-        exoPlayer = null
+    private fun startPlaybackService() {
+        val intent = Intent(this, PlaybackService::class.java)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            startForegroundService(intent)
+        } else {
+            startService(intent)
+        }
     }
 }
 
 fun playSoundEffect(context: Context, soundResId: Int) {
-    val mp = MediaPlayer.create(context, soundResId)
-    mp.setOnCompletionListener { it.release() }
-    mp.start()
+    try {
+        MediaPlayer.create(context, soundResId)?.apply {
+            setOnCompletionListener { it.release() }
+            start()
+        }
+    } catch (e: Exception) { e.printStackTrace() }
 }
-//XD
+
 @Composable
-fun MainScreen(exoPlayer: ExoPlayer, context: Context) {
+fun MainScreen(exoPlayer: ExoPlayer, context: Context, onPermissionsGranted: () -> Unit) {
     var currentCassette by remember { mutableStateOf<RetroCassetteData?>(null) }
     var isDoorOpen by remember { mutableStateOf(false) }
     var isPlaying by remember { mutableStateOf(false) }
@@ -173,34 +204,23 @@ fun MainScreen(exoPlayer: ExoPlayer, context: Context) {
     var isLibraryExpanded by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
     var myTapes by remember { mutableStateOf<List<RetroCassetteData>>(emptyList()) }
-
     var sliderPosition by remember { mutableStateOf(0f) }
     var duration by remember { mutableStateOf(0f) }
 
     val filteredTapes = remember(searchQuery, myTapes) {
-        if (searchQuery.isEmpty()) myTapes
-        else myTapes.filter { it.title.contains(searchQuery, ignoreCase = true) }
+        if (searchQuery.isEmpty()) myTapes else myTapes.filter { it.title.contains(searchQuery, ignoreCase = true) }
     }
 
     val prepareAndPlay = { tape: RetroCassetteData ->
         try {
             exoPlayer.stop()
             exoPlayer.clearMediaItems()
-
-            val metadata = MediaMetadata.Builder()
-                .setTitle(tape.title)
-                .setArtist("Retro Player")
-                .build()
-
+            val metadata = MediaMetadata.Builder().setTitle(tape.title).setArtist("Retrowave").build()
             val mediaItem = if (tape.songUri != null) {
                 MediaItem.Builder().setUri(tape.songUri).setMediaMetadata(metadata).build()
             } else {
-                MediaItem.Builder()
-                    .setUri("android.resource://${context.packageName}/${tape.songResId}")
-                    .setMediaMetadata(metadata)
-                    .build()
+                MediaItem.Builder().setUri("android.resource://${context.packageName}/${tape.songResId}").setMediaMetadata(metadata).build()
             }
-
             exoPlayer.setMediaItem(mediaItem)
             exoPlayer.prepare()
             exoPlayer.play()
@@ -210,33 +230,11 @@ fun MainScreen(exoPlayer: ExoPlayer, context: Context) {
 
     LaunchedEffect(exoPlayer) {
         exoPlayer.addListener(object : Player.Listener {
-            override fun onIsPlayingChanged(playing: Boolean) {
-                isPlaying = playing
-            }
-
-            override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
-                mediaItem?.mediaMetadata?.title?.let { title ->
-                    if (currentCassette?.title != title) {
-                        currentCassette = myTapes.find { it.title == title.toString() }
-                    }
-                }
-            }
-
-            override fun onPlaybackStateChanged(state: Int) {
-                if (state == Player.STATE_ENDED) {
-                    val currentIndex = myTapes.indexOf(currentCassette)
-                    if (currentIndex != -1 && currentIndex < myTapes.size - 1) {
-                        currentCassette = myTapes[currentIndex + 1]
-                        prepareAndPlay(currentCassette!!)
-                    } else {
-                        isPlaying = false
-                    }
-                }
-            }
+            override fun onIsPlayingChanged(playing: Boolean) { isPlaying = playing }
         })
     }
 
-    val permission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+    val permissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
         arrayOf(Manifest.permission.READ_MEDIA_AUDIO, Manifest.permission.POST_NOTIFICATIONS)
     } else {
         arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE)
@@ -244,12 +242,12 @@ fun MainScreen(exoPlayer: ExoPlayer, context: Context) {
 
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { perms ->
         if (perms.values.all { it }) {
+            onPermissionsGranted()
             val songList = mutableListOf<RetroCassetteData>()
             val collection = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) MediaStore.Audio.Media.getContentUri(MediaStore.VOLUME_EXTERNAL)
             else MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
-
             val projection = arrayOf(MediaStore.Audio.Media._ID, MediaStore.Audio.Media.DISPLAY_NAME)
-            context.contentResolver.query(collection, projection, "${MediaStore.Audio.Media.DURATION} >= ?", arrayOf("60000"), null)?.use { cursor ->
+            context.contentResolver.query(collection, projection, null, null, null)?.use { cursor ->
                 val idCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media._ID)
                 val nameCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DISPLAY_NAME)
                 val colors = listOf(Color.Magenta, Color.Cyan, Color.Green, Color(0xFFFF9100))
@@ -263,9 +261,7 @@ fun MainScreen(exoPlayer: ExoPlayer, context: Context) {
         }
     }
 
-    LaunchedEffect(Unit) {
-        launcher.launch(permission)
-    }
+    LaunchedEffect(Unit) { launcher.launch(permissions) }
 
     LaunchedEffect(isPlaying, isRewinding) {
         while (true) {
@@ -277,52 +273,17 @@ fun MainScreen(exoPlayer: ExoPlayer, context: Context) {
         }
     }
 
-    val togglePlay = {
-        if (currentCassette != null && !isDoorOpen) {
-            playSoundEffect(context, R.raw.press_button)
-            if (isPlaying) { exoPlayer.pause() }
-            else {
-                if (exoPlayer.playbackState == Player.STATE_IDLE || exoPlayer.playbackState == Player.STATE_ENDED) prepareAndPlay(currentCassette!!)
-                else { exoPlayer.play() }
-            }
-        }
-    }
-
-    val skipNext = {
-        if (myTapes.isNotEmpty()) {
-            playSoundEffect(context, R.raw.press_button)
-            val currentIndex = myTapes.indexOf(currentCassette)
-            val nextIndex = if (currentIndex < myTapes.size - 1) currentIndex + 1 else 0
-            currentCassette = myTapes[nextIndex]
-            prepareAndPlay(currentCassette!!)
-        }
-    }
-
-    val skipPrevious = {
-        if (myTapes.isNotEmpty()) {
-            playSoundEffect(context, R.raw.press_button)
-            val currentIndex = myTapes.indexOf(currentCassette)
-            val prevIndex = if (currentIndex > 0) currentIndex - 1 else myTapes.size - 1
-            currentCassette = myTapes[prevIndex]
-            prepareAndPlay(currentCassette!!)
-        }
-    }
-
     Box(modifier = Modifier.fillMaxSize()) {
         Image(painter = painterResource(id = R.drawable.fondo_reproductor), contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = Crop)
-
         Column(modifier = Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
             val status = when {
                 isRewinding -> "REWINDING..."
-                isPlaying -> "NOW PLAYING: ${currentCassette?.title}"
+                isPlaying -> "NOW PLAYING: ${currentCassette?.title ?: "..."}"
                 currentCassette == null -> "INSERT CASSETTE"
                 isDoorOpen -> "DOOR OPEN"
                 else -> "PAUSED"
             }
-
-            Box(modifier = Modifier.padding(top = 40.dp).fillMaxWidth(), contentAlignment = Alignment.Center) {
-                MarqueeText(text = status)
-            }
+            Box(modifier = Modifier.padding(top = 40.dp).fillMaxWidth(), contentAlignment = Alignment.Center) { MarqueeText(text = status) }
 
             Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -336,7 +297,7 @@ fun MainScreen(exoPlayer: ExoPlayer, context: Context) {
                         onDoorToggle = {
                             isDoorOpen = !isDoorOpen
                             playSoundEffect(context, if (isDoorOpen) R.raw.open_tape else R.raw.closing_tape)
-                            if (isDoorOpen) { exoPlayer.pause() }
+                            if (isDoorOpen) exoPlayer.pause()
                         },
                         onCassetteDropped = { data ->
                             currentCassette = data
@@ -357,71 +318,64 @@ fun MainScreen(exoPlayer: ExoPlayer, context: Context) {
                 }
             }
 
-            Row(modifier = Modifier.fillMaxWidth(0.6f).padding(bottom = 15.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Image(painter = painterResource(id = R.drawable.previous_song_button), contentDescription = "Previous", modifier = Modifier.size(55.dp).clickable { skipPrevious() })
-                Image(painter = painterResource(id = R.drawable.next_song_button), contentDescription = "Next", modifier = Modifier.size(55.dp).clickable { skipNext() })
+            // Controles
+            Row(modifier = Modifier.fillMaxWidth(0.6f).padding(bottom = 15.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+                Image(painter = painterResource(id = R.drawable.previous_song_button), contentDescription = null, modifier = Modifier.size(55.dp).clickable {
+                    if (myTapes.isNotEmpty()) {
+                        val idx = myTapes.indexOf(currentCassette); currentCassette = if (idx > 0) myTapes[idx - 1] else myTapes.last()
+                        prepareAndPlay(currentCassette!!)
+                        playSoundEffect(context, R.raw.press_button)
+                    }
+                })
+                Image(painter = painterResource(id = R.drawable.next_song_button), contentDescription = null, modifier = Modifier.size(55.dp).clickable {
+                    if (myTapes.isNotEmpty()) {
+                        val idx = myTapes.indexOf(currentCassette); currentCassette = if (idx < myTapes.size - 1) myTapes[idx + 1] else myTapes.first()
+                        prepareAndPlay(currentCassette!!)
+                        playSoundEffect(context, R.raw.press_button)
+                    }
+                })
             }
 
             Row(modifier = Modifier.fillMaxWidth().padding(bottom = 50.dp), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) {
-                PlayerButton(R.drawable.btn_start) { togglePlay() }
-                PlayerButton(R.drawable.btn_stop) {
-                    if (isPlaying || isRewinding) {
+                PlayerButton(R.drawable.btn_start) {
+                    if (currentCassette != null && !isDoorOpen) {
                         playSoundEffect(context, R.raw.press_button)
-                        exoPlayer.pause(); isRewinding = false
+                        if (isPlaying) exoPlayer.pause() else exoPlayer.play()
                     }
                 }
-                Image(painter = painterResource(id = R.drawable.btn_rewind), contentDescription = null,
-                    modifier = Modifier.size(65.dp).pointerInput(currentCassette, isDoorOpen) {
-                        detectTapGestures(onPress = {
-                            if (currentCassette != null && !isDoorOpen) {
-                                val wasPlaying = isPlaying
-                                playSoundEffect(context, R.raw.rewinding_cassette)
-                                isRewinding = true; exoPlayer.pause()
-                                try {
-                                    while (true) {
-                                        exoPlayer.seekTo((exoPlayer.currentPosition - 2500).coerceAtLeast(0))
-                                        delay(100)
-                                        if (tryAwaitRelease()) break
-                                    }
-                                } finally {
-                                    isRewinding = false
-                                    if (wasPlaying) { exoPlayer.play() }
-                                }
-                            }
-                        })
+                PlayerButton(R.drawable.btn_stop) {
+                    playSoundEffect(context, R.raw.press_button)
+                    exoPlayer.pause(); isRewinding = false
+                }
+                Image(painter = painterResource(id = R.drawable.btn_rewind), contentDescription = null, modifier = Modifier.size(65.dp).pointerInput(currentCassette, isDoorOpen) {
+                    detectTapGestures(onPress = {
+                        if (currentCassette != null && !isDoorOpen) {
+                            isRewinding = true; exoPlayer.pause()
+                            try { while (true) { exoPlayer.seekTo((exoPlayer.currentPosition - 2500).coerceAtLeast(0)); delay(100); if (tryAwaitRelease()) break } }
+                            finally { isRewinding = false; exoPlayer.play() }
+                        }
                     })
+                })
                 PlayerButton(R.drawable.btn_eject) {
                     if (currentCassette != null) {
+                        playSoundEffect(context, R.raw.press_button)
                         isDoorOpen = true; currentCassette = null; exoPlayer.stop()
-                        playSoundEffect(context, R.raw.eject_cassette)
                     }
                 }
-                PlayerButton(R.drawable.btn_menu) { showLibrary = true }
+                PlayerButton(R.drawable.btn_menu) {
+                    playSoundEffect(context, R.raw.press_button)
+                    showLibrary = true
+                }
             }
         }
 
         AnimatedVisibility(visible = showLibrary, enter = slideInVertically { it } + fadeIn(), exit = slideOutVertically { it } + fadeOut()) {
-            LibraryOverlay(
-                tapes = filteredTapes,
-                isExpanded = isLibraryExpanded,
-                searchQuery = searchQuery,
-                onSearchChange = { searchQuery = it },
-                onToggleExpand = { isLibraryExpanded = !isLibraryExpanded },
-                onTapeSelected = { tape ->
-                    currentCassette = tape
-                    isDoorOpen = false
-                    prepareAndPlay(tape)
-                    playSoundEffect(context, R.raw.closing_tape)
-                    showLibrary = false
-                    isLibraryExpanded = false
-                },
-                onClose = { showLibrary = false; isLibraryExpanded = false }
-            )
+            LibraryOverlay(tapes = filteredTapes, isExpanded = isLibraryExpanded, searchQuery = searchQuery, onSearchChange = { searchQuery = it }, onToggleExpand = { isLibraryExpanded = !isLibraryExpanded }, onTapeSelected = { tape -> currentCassette = tape; isDoorOpen = false; prepareAndPlay(tape); showLibrary = false }, onClose = { showLibrary = false })
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+// --- COMPONENTES VISUALES ---
 @Composable
 fun LibraryOverlay(tapes: List<RetroCassetteData>, isExpanded: Boolean, searchQuery: String, onSearchChange: (String) -> Unit, onToggleExpand: () -> Unit, onTapeSelected: (RetroCassetteData) -> Unit, onClose: () -> Unit) {
     Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(0.8f)).clickable { onClose() }, contentAlignment = Alignment.BottomCenter) {
@@ -468,9 +422,7 @@ fun CassetteDeckSection(modifier: Modifier, isDoorOpen: Boolean, hasCassette: Bo
 fun BoxScope.CassetteVisual(rotation: Float, isMoving: Boolean, alpha: Float, title: String) {
     Box(modifier = Modifier.size(200.dp).offset(y = 11.dp).graphicsLayer(alpha = alpha), contentAlignment = Alignment.Center) {
         Image(painter = painterResource(id = R.drawable.cassette_unico), contentDescription = null)
-        if (title.isNotEmpty()) {
-            MarqueeText(text = title, modifier = Modifier.width(130.dp).offset(y = (-80).dp), fontSize = 12.sp, color = Color.Cyan)
-        }
+        if (title.isNotEmpty()) { MarqueeText(text = title, modifier = Modifier.width(130.dp).offset(y = (-80).dp), fontSize = 12.sp, color = Color.Cyan) }
         Row(modifier = Modifier.fillMaxWidth(0.46f).offset(y = (-6).dp), horizontalArrangement = Arrangement.SpaceBetween) {
             Engranaje(rotation = if (isMoving) rotation else 0f)
             Engranaje(rotation = if (isMoving) rotation else 0f)
@@ -484,14 +436,35 @@ fun Engranaje(rotation: Float) { Image(painter = painterResource(id = R.drawable
 @Composable
 fun <T> RetroDragTarget(modifier: Modifier = Modifier, dataToDrop: T, content: @Composable (() -> Unit)) {
     val state = LocalRetroDragInfo.current
-    Box(modifier = modifier.onGloballyPositioned { state.dragPosition = it.localToWindow(androidx.compose.ui.geometry.Offset.Zero) }.pointerInput(Unit) { detectDragGesturesAfterLongPress(onDragStart = { state.dataToDrop = dataToDrop; state.isDragging = true; state.dragOffset = it; state.draggableComposable = content }, onDrag = { change, dragAmount -> change.consume(); state.dragOffset += dragAmount }, onDragEnd = { state.isDragging = false }) }) { content() }
+    Box(modifier = modifier
+        .onGloballyPositioned { state.dragPosition = it.localToWindow(Offset.Zero) }
+        .pointerInput(dataToDrop) {
+            detectDragGesturesAfterLongPress(
+                onDragStart = {
+                    state.dataToDrop = dataToDrop
+                    state.isDragging = true
+                    state.dragOffset = Offset.Zero
+                    state.draggableComposable = content
+                },
+                onDrag = { change, dragAmount ->
+                    change.consume()
+                    state.dragOffset += dragAmount
+                },
+                onDragEnd = { state.isDragging = false },
+                onDragCancel = { state.isDragging = false }
+            )
+        }
+    ) { content() }
 }
 
 @Composable
 fun <T> RetroDropTarget(modifier: Modifier, content: @Composable (BoxScope.(isInBound: Boolean, data: T?) -> Unit)) {
     val dragInfo = LocalRetroDragInfo.current
     var isCurrentTarget by remember { mutableStateOf(false) }
-    Box(modifier = modifier.onGloballyPositioned { val rect = it.boundsInWindow(); isCurrentTarget = rect.contains(dragInfo.dragPosition + dragInfo.dragOffset) }) { content(isCurrentTarget, if (isCurrentTarget && !dragInfo.isDragging) dragInfo.dataToDrop as? T else null) }
+    Box(modifier = modifier.onGloballyPositioned {
+        val rect = it.boundsInWindow()
+        isCurrentTarget = rect.contains(dragInfo.dragPosition + dragInfo.dragOffset)
+    }) { content(isCurrentTarget, if (isCurrentTarget && !dragInfo.isDragging) dragInfo.dataToDrop as? T else null) }
 }
 
 @Composable
@@ -502,7 +475,15 @@ fun RetroLongPressDraggable(modifier: Modifier = Modifier, content: @Composable 
             content()
             if (state.isDragging) {
                 var size by remember { mutableStateOf(IntSize.Zero) }
-                Box(modifier = Modifier.graphicsLayer { translationX = (state.dragPosition.x + state.dragOffset.x) - size.width / 2; translationY = (state.dragPosition.y + state.dragOffset.y) - size.height / 2; alpha = 0.7f; scaleX = 1.1f; scaleY = 1.1f }.onGloballyPositioned { size = it.size }) { state.draggableComposable?.invoke() }
+                Box(modifier = Modifier.graphicsLayer {
+                    val targetX = (state.dragPosition.x + state.dragOffset.x) - size.width / 2
+                    val targetY = (state.dragPosition.y + state.dragOffset.y) - size.height / 2
+                    translationX = targetX
+                    translationY = targetY
+                    alpha = 0.7f
+                    scaleX = 1.1f
+                    scaleY = 1.1f
+                }.onGloballyPositioned { size = it.size }) { state.draggableComposable?.invoke() }
             }
         }
     }
