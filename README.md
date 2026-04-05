@@ -35,3 +35,10 @@ This proyect will be uploaded the right way later, for now, this is just demo co
 <img width="411" height="1200" alt="image" src="https://github.com/user-attachments/assets/df6dff3b-12b9-4741-9199-66aa9cc95dbe" />
 
 <img width="411" height="1200" alt="image" src="https://github.com/user-attachments/assets/e02d16c4-d66e-4bf2-91b3-d704afdf7635" />
+
+## Version 4 soon avariable
+#### New buttons for skip forward and go back quicker
+
+<img width="411" height="1200" alt="image" src="https://github.com/user-attachments/assets/8d92711b-406c-417d-b7aa-549df7c4896f" />
+
+
