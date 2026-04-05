@@ -72,9 +72,12 @@ class PlaybackService : MediaSessionService() {
             playerInstance = ExoPlayer.Builder(this).build()
         }
         mediaSession = MediaSession.Builder(this, playerInstance!!).build()
-
         createNotificationChannel()
+    }
+
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         startForeground(NOTIFICATION_ID, createNotification())
+        return super.onStartCommand(intent, flags, startId)
     }
 
     private fun createNotificationChannel() {
@@ -82,23 +85,27 @@ class PlaybackService : MediaSessionService() {
             val channel = NotificationChannel(
                 CHANNEL_ID, "Retrowave Playback",
                 NotificationManager.IMPORTANCE_LOW
-            )
+            ).apply { description = "Control de reproducción de cintas" }
             val manager = getSystemService(NotificationManager::class.java)
-            manager.createNotificationChannel(channel)
+            manager?.createNotificationChannel(channel)
         }
     }
 
     private fun createNotification(): Notification {
         val intent = Intent(this, MainActivity::class.java)
-        val pendingIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_IMMUTABLE)
+        val pendingIntent = PendingIntent.getActivity(
+            this, 0, intent,
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
 
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("Retrowave Player")
-            .setContentText("Reproduciendo tu mixtape...")
+            .setContentText("Tu mixtape está sonando")
             .setSmallIcon(R.drawable.cassette_unico)
             .setOngoing(true)
             .setContentIntent(pendingIntent)
             .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .build()
     }
 
@@ -108,9 +115,9 @@ class PlaybackService : MediaSessionService() {
         mediaSession?.run {
             player.release()
             release()
-            mediaSession = null
-            playerInstance = null
         }
+        mediaSession = null
+        playerInstance = null
         super.onDestroy()
     }
 }
@@ -155,20 +162,20 @@ fun MarqueeText(text: String, modifier: Modifier = Modifier, color: Color = Colo
 }
 
 class MainActivity : ComponentActivity() {
-    private var exoPlayer: ExoPlayer? = null
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         if (PlaybackService.playerInstance == null) {
             PlaybackService.playerInstance = ExoPlayer.Builder(this).build()
         }
-        exoPlayer = PlaybackService.playerInstance
+
         enableEdgeToEdge()
         setContent {
             RetroCassettePlayerTheme {
                 RetroLongPressDraggable(modifier = Modifier.fillMaxSize()) {
                     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-                        MainScreen(exoPlayer = exoPlayer!!, context = this@MainActivity) { startPlaybackService() }
+                        MainScreen(exoPlayer = PlaybackService.playerInstance!!, context = this@MainActivity) {
+                            startPlaybackService()
+                        }
                     }
                 }
             }
@@ -211,6 +218,7 @@ fun MainScreen(exoPlayer: ExoPlayer, context: Context, onPermissionsGranted: () 
         if (searchQuery.isEmpty()) myTapes else myTapes.filter { it.title.contains(searchQuery, ignoreCase = true) }
     }
 
+    // --- CORRECCIÓN EN PREPARE AND PLAY ---
     val prepareAndPlay = { tape: RetroCassetteData ->
         try {
             exoPlayer.stop()
@@ -223,15 +231,39 @@ fun MainScreen(exoPlayer: ExoPlayer, context: Context, onPermissionsGranted: () 
             }
             exoPlayer.setMediaItem(mediaItem)
             exoPlayer.prepare()
-            exoPlayer.play()
+            exoPlayer.playWhenReady = true // Usar playWhenReady es más estable para transiciones automáticas
             isPlaying = true
+            onPermissionsGranted()
         } catch (e: Exception) { isPlaying = false }
     }
 
+    // --- LÓGICA DE AUTO-NEXT CORREGIDA ---
     LaunchedEffect(exoPlayer) {
-        exoPlayer.addListener(object : Player.Listener {
-            override fun onIsPlayingChanged(playing: Boolean) { isPlaying = playing }
-        })
+        val listener = object : Player.Listener {
+            override fun onIsPlayingChanged(playing: Boolean) {
+                isPlaying = playing
+            }
+
+            override fun onPlaybackStateChanged(state: Int) {
+                // Solo disparamos la lógica si la canción realmente terminó por su cuenta
+                if (state == Player.STATE_ENDED) {
+                    // Usamos un bloque side-effect para evitar problemas de recomposición
+                    val currentList = myTapes
+                    val currentTape = currentCassette
+                    if (currentList.isNotEmpty() && currentTape != null) {
+                        val idx = currentList.indexOf(currentTape)
+                        // Calculamos la siguiente canción
+                        val nextIdx = (idx + 1) % currentList.size
+                        val nextTape = currentList[nextIdx]
+
+                        // Actualizamos el estado y reproducimos
+                        currentCassette = nextTape
+                        prepareAndPlay(nextTape)
+                    }
+                }
+            }
+        }
+        exoPlayer.addListener(listener)
     }
 
     val permissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -242,22 +274,38 @@ fun MainScreen(exoPlayer: ExoPlayer, context: Context, onPermissionsGranted: () 
 
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { perms ->
         if (perms.values.all { it }) {
-            onPermissionsGranted()
             val songList = mutableListOf<RetroCassetteData>()
             val collection = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) MediaStore.Audio.Media.getContentUri(MediaStore.VOLUME_EXTERNAL)
             else MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
-            val projection = arrayOf(MediaStore.Audio.Media._ID, MediaStore.Audio.Media.DISPLAY_NAME)
+
+            val projection = arrayOf(
+                MediaStore.Audio.Media._ID,
+                MediaStore.Audio.Media.DISPLAY_NAME,
+                MediaStore.Audio.Media.DURATION
+            )
+
             context.contentResolver.query(collection, projection, null, null, null)?.use { cursor ->
                 val idCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media._ID)
                 val nameCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DISPLAY_NAME)
+                val durationCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION)
                 val colors = listOf(Color.Magenta, Color.Cyan, Color.Green, Color(0xFFFF9100))
+
                 while (cursor.moveToNext()) {
-                    val id = cursor.getLong(idCol)
-                    val uri = Uri.withAppendedPath(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, id.toString())
-                    songList.add(RetroCassetteData(id, cursor.getString(nameCol).removeSuffix(".mp3"), uri, 0, colors.random()))
+                    val durationMs = cursor.getLong(durationCol)
+                    if (durationMs >= 60000) {
+                        val id = cursor.getLong(idCol)
+                        val uri = Uri.withAppendedPath(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, id.toString())
+                        songList.add(RetroCassetteData(
+                            id,
+                            cursor.getString(nameCol).removeSuffix(".mp3"),
+                            uri,
+                            0,
+                            colors.random()
+                        ))
+                    }
                 }
             }
-            myTapes = songList
+            myTapes = songList.sortedBy { it.title.lowercase() }
         }
     }
 
@@ -265,9 +313,9 @@ fun MainScreen(exoPlayer: ExoPlayer, context: Context, onPermissionsGranted: () 
 
     LaunchedEffect(isPlaying, isRewinding) {
         while (true) {
-            if (currentCassette != null) {
+            if (currentCassette != null && exoPlayer.duration > 0) {
                 sliderPosition = exoPlayer.currentPosition.toFloat()
-                duration = exoPlayer.duration.coerceAtLeast(0).toFloat()
+                duration = exoPlayer.duration.toFloat()
             }
             delay(500)
         }
@@ -275,6 +323,7 @@ fun MainScreen(exoPlayer: ExoPlayer, context: Context, onPermissionsGranted: () 
 
     Box(modifier = Modifier.fillMaxSize()) {
         Image(painter = painterResource(id = R.drawable.fondo_reproductor), contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = Crop)
+
         Column(modifier = Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
             val status = when {
                 isRewinding -> "REWINDING..."
@@ -283,7 +332,9 @@ fun MainScreen(exoPlayer: ExoPlayer, context: Context, onPermissionsGranted: () 
                 isDoorOpen -> "DOOR OPEN"
                 else -> "PAUSED"
             }
-            Box(modifier = Modifier.padding(top = 40.dp).fillMaxWidth(), contentAlignment = Alignment.Center) { MarqueeText(text = status) }
+            Box(modifier = Modifier.padding(top = 40.dp).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                MarqueeText(text = status)
+            }
 
             Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -306,10 +357,14 @@ fun MainScreen(exoPlayer: ExoPlayer, context: Context, onPermissionsGranted: () 
                             playSoundEffect(context, R.raw.closing_tape)
                         }
                     )
+
                     if (currentCassette != null) {
                         Slider(
-                            value = sliderPosition,
-                            onValueChange = { sliderPosition = it; exoPlayer.seekTo(it.toLong()) },
+                            value = sliderPosition.coerceIn(0f, duration.coerceAtLeast(1f)),
+                            onValueChange = {
+                                sliderPosition = it
+                                exoPlayer.seekTo(it.toLong())
+                            },
                             valueRange = 0f..duration.coerceAtLeast(1f),
                             modifier = Modifier.fillMaxWidth(0.7f).padding(top = 10.dp),
                             colors = SliderDefaults.colors(thumbColor = Color.Cyan, activeTrackColor = Color.Cyan)
@@ -318,18 +373,21 @@ fun MainScreen(exoPlayer: ExoPlayer, context: Context, onPermissionsGranted: () 
                 }
             }
 
-            // Controles
             Row(modifier = Modifier.fillMaxWidth(0.6f).padding(bottom = 15.dp), horizontalArrangement = Arrangement.SpaceBetween) {
                 Image(painter = painterResource(id = R.drawable.previous_song_button), contentDescription = null, modifier = Modifier.size(55.dp).clickable {
                     if (myTapes.isNotEmpty()) {
-                        val idx = myTapes.indexOf(currentCassette); currentCassette = if (idx > 0) myTapes[idx - 1] else myTapes.last()
+                        val idx = myTapes.indexOf(currentCassette)
+                        val prevIdx = if (idx > 0) idx - 1 else myTapes.size - 1
+                        currentCassette = myTapes[prevIdx]
                         prepareAndPlay(currentCassette!!)
                         playSoundEffect(context, R.raw.press_button)
                     }
                 })
                 Image(painter = painterResource(id = R.drawable.next_song_button), contentDescription = null, modifier = Modifier.size(55.dp).clickable {
                     if (myTapes.isNotEmpty()) {
-                        val idx = myTapes.indexOf(currentCassette); currentCassette = if (idx < myTapes.size - 1) myTapes[idx + 1] else myTapes.first()
+                        val idx = myTapes.indexOf(currentCassette)
+                        val nextIdx = (idx + 1) % myTapes.size
+                        currentCassette = myTapes[nextIdx]
                         prepareAndPlay(currentCassette!!)
                         playSoundEffect(context, R.raw.press_button)
                     }
@@ -345,21 +403,37 @@ fun MainScreen(exoPlayer: ExoPlayer, context: Context, onPermissionsGranted: () 
                 }
                 PlayerButton(R.drawable.btn_stop) {
                     playSoundEffect(context, R.raw.press_button)
-                    exoPlayer.pause(); isRewinding = false
+                    exoPlayer.pause()
+                    isRewinding = false
                 }
-                Image(painter = painterResource(id = R.drawable.btn_rewind), contentDescription = null, modifier = Modifier.size(65.dp).pointerInput(currentCassette, isDoorOpen) {
-                    detectTapGestures(onPress = {
-                        if (currentCassette != null && !isDoorOpen) {
-                            isRewinding = true; exoPlayer.pause()
-                            try { while (true) { exoPlayer.seekTo((exoPlayer.currentPosition - 2500).coerceAtLeast(0)); delay(100); if (tryAwaitRelease()) break } }
-                            finally { isRewinding = false; exoPlayer.play() }
-                        }
+
+                Image(painter = painterResource(id = R.drawable.btn_rewind), contentDescription = null,
+                    modifier = Modifier.size(65.dp).pointerInput(currentCassette, isDoorOpen) {
+                        detectTapGestures(onPress = {
+                            if (currentCassette != null && !isDoorOpen) {
+                                isRewinding = true
+                                exoPlayer.pause()
+                                playSoundEffect(context, R.raw.rewinding_cassette)
+                                try {
+                                    while (true) {
+                                        exoPlayer.seekTo((exoPlayer.currentPosition - 3000).coerceAtLeast(0))
+                                        delay(100)
+                                        if (tryAwaitRelease()) break
+                                    }
+                                } finally {
+                                    isRewinding = false
+                                    exoPlayer.play()
+                                }
+                            }
+                        })
                     })
-                })
+
                 PlayerButton(R.drawable.btn_eject) {
                     if (currentCassette != null) {
-                        playSoundEffect(context, R.raw.press_button)
-                        isDoorOpen = true; currentCassette = null; exoPlayer.stop()
+                        playSoundEffect(context, R.raw.eject_cassette)
+                        isDoorOpen = true
+                        currentCassette = null
+                        exoPlayer.stop()
                     }
                 }
                 PlayerButton(R.drawable.btn_menu) {
@@ -370,12 +444,24 @@ fun MainScreen(exoPlayer: ExoPlayer, context: Context, onPermissionsGranted: () 
         }
 
         AnimatedVisibility(visible = showLibrary, enter = slideInVertically { it } + fadeIn(), exit = slideOutVertically { it } + fadeOut()) {
-            LibraryOverlay(tapes = filteredTapes, isExpanded = isLibraryExpanded, searchQuery = searchQuery, onSearchChange = { searchQuery = it }, onToggleExpand = { isLibraryExpanded = !isLibraryExpanded }, onTapeSelected = { tape -> currentCassette = tape; isDoorOpen = false; prepareAndPlay(tape); showLibrary = false }, onClose = { showLibrary = false })
+            LibraryOverlay(
+                tapes = filteredTapes,
+                isExpanded = isLibraryExpanded,
+                searchQuery = searchQuery,
+                onSearchChange = { searchQuery = it },
+                onToggleExpand = { isLibraryExpanded = !isLibraryExpanded },
+                onTapeSelected = { tape ->
+                    currentCassette = tape
+                    isDoorOpen = false
+                    prepareAndPlay(tape)
+                    showLibrary = false
+                },
+                onClose = { showLibrary = false }
+            )
         }
     }
 }
 
-// --- COMPONENTES VISUALES ---
 @Composable
 fun LibraryOverlay(tapes: List<RetroCassetteData>, isExpanded: Boolean, searchQuery: String, onSearchChange: (String) -> Unit, onToggleExpand: () -> Unit, onTapeSelected: (RetroCassetteData) -> Unit, onClose: () -> Unit) {
     Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(0.8f)).clickable { onClose() }, contentAlignment = Alignment.BottomCenter) {
@@ -384,9 +470,23 @@ fun LibraryOverlay(tapes: List<RetroCassetteData>, isExpanded: Boolean, searchQu
                 Text("YOUR MIXTAPES (${tapes.size})", color = Color.Cyan, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
                 IconButton(onClick = onToggleExpand) { Icon(if (isExpanded) Icons.Default.Close else Icons.Default.Add, contentDescription = null, tint = Color.Cyan) }
             }
-            OutlinedTextField(value = searchQuery, onValueChange = onSearchChange, modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp), placeholder = { Text("Search song...", color = Color.Gray) }, singleLine = true, colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = Color.Magenta, unfocusedBorderColor = Color.Cyan, focusedTextColor = Color.White, unfocusedTextColor = Color.LightGray, cursorColor = Color.Magenta))
-            if (isExpanded) { LazyVerticalGrid(columns = GridCells.Fixed(2), contentPadding = PaddingValues(10.dp), verticalArrangement = Arrangement.spacedBy(20.dp), horizontalArrangement = Arrangement.spacedBy(20.dp)) { items(tapes) { tape -> TapeItem(tape, onTapeSelected) } } }
-            else { Row(modifier = Modifier.horizontalScroll(rememberScrollState())) { tapes.forEach { tape -> Box(modifier = Modifier.padding(end = 15.dp)) { TapeItem(tape, onTapeSelected) } } } }
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = onSearchChange,
+                modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp),
+                placeholder = { Text("Search song...", color = Color.Gray) },
+                singleLine = true,
+                colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = Color.Magenta, unfocusedBorderColor = Color.Cyan, focusedTextColor = Color.White, unfocusedTextColor = Color.LightGray, cursorColor = Color.Magenta)
+            )
+            if (isExpanded) {
+                LazyVerticalGrid(columns = GridCells.Fixed(2), contentPadding = PaddingValues(10.dp), verticalArrangement = Arrangement.spacedBy(20.dp), horizontalArrangement = Arrangement.spacedBy(20.dp)) {
+                    items(tapes) { tape -> TapeItem(tape, onTapeSelected) }
+                }
+            } else {
+                Row(modifier = Modifier.horizontalScroll(rememberScrollState())) {
+                    tapes.forEach { tape -> Box(modifier = Modifier.padding(end = 15.dp)) { TapeItem(tape, onTapeSelected) } }
+                }
+            }
         }
     }
 }
@@ -402,12 +502,18 @@ fun TapeItem(tape: RetroCassetteData, onTapeSelected: (RetroCassetteData) -> Uni
 }
 
 @Composable
-fun PlayerButton(resId: Int, onClick: () -> Unit) { Image(painter = painterResource(id = resId), contentDescription = null, modifier = Modifier.size(65.dp).clickable { onClick() }) }
+fun PlayerButton(resId: Int, onClick: () -> Unit) {
+    Image(painter = painterResource(id = resId), contentDescription = null, modifier = Modifier.size(65.dp).clickable { onClick() })
+}
 
 @Composable
 fun CassetteDeckSection(modifier: Modifier, isDoorOpen: Boolean, hasCassette: Boolean, isPlaying: Boolean, isRewinding: Boolean, currentTitle: String, onDoorToggle: () -> Unit, onCassetteDropped: (RetroCassetteData) -> Unit) {
     RetroDropTarget<RetroCassetteData>(modifier = modifier) { _, data ->
-        val rotation by rememberInfiniteTransition().animateFloat(initialValue = 0f, targetValue = if (isRewinding) -360f else 360f, animationSpec = infiniteRepeatable(animation = tween(if (isRewinding) 400 else 2000, easing = LinearEasing)), label = "")
+        val rotation by rememberInfiniteTransition().animateFloat(
+            initialValue = 0f,
+            targetValue = if (isRewinding) -360f else 360f,
+            animationSpec = infiniteRepeatable(animation = tween(if (isRewinding) 400 else 2000, easing = LinearEasing)), label = ""
+        )
         LaunchedEffect(data) { data?.let { onCassetteDropped(it) } }
         Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
             Image(painter = painterResource(id = R.drawable.tapa_abierta), contentDescription = null)
@@ -422,7 +528,9 @@ fun CassetteDeckSection(modifier: Modifier, isDoorOpen: Boolean, hasCassette: Bo
 fun BoxScope.CassetteVisual(rotation: Float, isMoving: Boolean, alpha: Float, title: String) {
     Box(modifier = Modifier.size(200.dp).offset(y = 11.dp).graphicsLayer(alpha = alpha), contentAlignment = Alignment.Center) {
         Image(painter = painterResource(id = R.drawable.cassette_unico), contentDescription = null)
-        if (title.isNotEmpty()) { MarqueeText(text = title, modifier = Modifier.width(130.dp).offset(y = (-80).dp), fontSize = 12.sp, color = Color.Cyan) }
+        if (title.isNotEmpty()) {
+            MarqueeText(text = title, modifier = Modifier.width(130.dp).offset(y = (-80).dp), fontSize = 12.sp, color = Color.Cyan)
+        }
         Row(modifier = Modifier.fillMaxWidth(0.46f).offset(y = (-6).dp), horizontalArrangement = Arrangement.SpaceBetween) {
             Engranaje(rotation = if (isMoving) rotation else 0f)
             Engranaje(rotation = if (isMoving) rotation else 0f)
@@ -431,7 +539,9 @@ fun BoxScope.CassetteVisual(rotation: Float, isMoving: Boolean, alpha: Float, ti
 }
 
 @Composable
-fun Engranaje(rotation: Float) { Image(painter = painterResource(id = R.drawable.engranaje_cassette), contentDescription = null, modifier = Modifier.size(27.dp).graphicsLayer(rotationZ = rotation)) }
+fun Engranaje(rotation: Float) {
+    Image(painter = painterResource(id = R.drawable.engranaje_cassette), contentDescription = null, modifier = Modifier.size(27.dp).graphicsLayer(rotationZ = rotation))
+}
 
 @Composable
 fun <T> RetroDragTarget(modifier: Modifier = Modifier, dataToDrop: T, content: @Composable (() -> Unit)) {
