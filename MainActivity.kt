@@ -50,7 +50,6 @@ import androidx.media3.session.MediaSession
 import kotlinx.coroutines.delay
 import com.mariogc55.retrowave.player.ui.theme.RetroCassettePlayerTheme
 
-// Modelo de datos
 data class RetroCassetteData(
     val id: Long,
     val title: String,
@@ -131,12 +130,10 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Inicializar ExoPlayer
         exoPlayer = ExoPlayer.Builder(this).build().apply {
             volume = 1.0f
         }
 
-        // Inicializar MediaSession para la notificación automática de Media3
         mediaSession = MediaSession.Builder(this, exoPlayer!!).build()
 
         enableEdgeToEdge()
@@ -165,7 +162,7 @@ fun playSoundEffect(context: Context, soundResId: Int) {
     mp.setOnCompletionListener { it.release() }
     mp.start()
 }
-
+//XD
 @Composable
 fun MainScreen(exoPlayer: ExoPlayer, context: Context) {
     var currentCassette by remember { mutableStateOf<RetroCassetteData?>(null) }
@@ -185,13 +182,11 @@ fun MainScreen(exoPlayer: ExoPlayer, context: Context) {
         else myTapes.filter { it.title.contains(searchQuery, ignoreCase = true) }
     }
 
-    // Función mejorada para cargar metadatos en la notificación
     val prepareAndPlay = { tape: RetroCassetteData ->
         try {
             exoPlayer.stop()
             exoPlayer.clearMediaItems()
 
-            // Configurar metadatos para la notificación
             val metadata = MediaMetadata.Builder()
                 .setTitle(tape.title)
                 .setArtist("Retro Player")
@@ -213,7 +208,6 @@ fun MainScreen(exoPlayer: ExoPlayer, context: Context) {
         } catch (e: Exception) { isPlaying = false }
     }
 
-    // Listener para actualizar estado de la UI basado en el player (y notificación)
     LaunchedEffect(exoPlayer) {
         exoPlayer.addListener(object : Player.Listener {
             override fun onIsPlayingChanged(playing: Boolean) {
@@ -221,7 +215,6 @@ fun MainScreen(exoPlayer: ExoPlayer, context: Context) {
             }
 
             override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
-                // Sincronizar UI si el cambio viene de la notificación (Next/Prev)
                 mediaItem?.mediaMetadata?.title?.let { title ->
                     if (currentCassette?.title != title) {
                         currentCassette = myTapes.find { it.title == title.toString() }
@@ -243,7 +236,6 @@ fun MainScreen(exoPlayer: ExoPlayer, context: Context) {
         })
     }
 
-    // Permisos y Carga de canciones
     val permission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
         arrayOf(Manifest.permission.READ_MEDIA_AUDIO, Manifest.permission.POST_NOTIFICATIONS)
     } else {
@@ -252,7 +244,6 @@ fun MainScreen(exoPlayer: ExoPlayer, context: Context) {
 
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { perms ->
         if (perms.values.all { it }) {
-            // Cargar canciones si el permiso de archivos fue aceptado
             val songList = mutableListOf<RetroCassetteData>()
             val collection = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) MediaStore.Audio.Media.getContentUri(MediaStore.VOLUME_EXTERNAL)
             else MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
@@ -430,7 +421,6 @@ fun MainScreen(exoPlayer: ExoPlayer, context: Context) {
     }
 }
 
-// Componentes secundarios (Iguales a tu versión anterior)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LibraryOverlay(tapes: List<RetroCassetteData>, isExpanded: Boolean, searchQuery: String, onSearchChange: (String) -> Unit, onToggleExpand: () -> Unit, onTapeSelected: (RetroCassetteData) -> Unit, onClose: () -> Unit) {
