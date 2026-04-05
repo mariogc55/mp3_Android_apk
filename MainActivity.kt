@@ -29,6 +29,7 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -201,6 +202,45 @@ fun playSoundEffect(context: Context, soundResId: Int) {
     } catch (e: Exception) { e.printStackTrace() }
 }
 
+// --- FUNCIÓN DE ESCANEO DE MÚSICA ---
+fun scanDeviceMusic(context: Context): List<RetroCassetteData> {
+    val songList = mutableListOf<RetroCassetteData>()
+    val collection = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+        MediaStore.Audio.Media.getContentUri(MediaStore.VOLUME_EXTERNAL)
+    } else {
+        MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
+    }
+
+    val projection = arrayOf(
+        MediaStore.Audio.Media._ID,
+        MediaStore.Audio.Media.DISPLAY_NAME,
+        MediaStore.Audio.Media.DURATION
+    )
+
+    context.contentResolver.query(collection, projection, null, null, null)?.use { cursor ->
+        val idCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media._ID)
+        val nameCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DISPLAY_NAME)
+        val durationCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION)
+        val colors = listOf(Color.Magenta, Color.Cyan, Color.Green, Color(0xFFFF9100))
+
+        while (cursor.moveToNext()) {
+            val durationMs = cursor.getLong(durationCol)
+            if (durationMs >= 60000) { // Filtro de 60 segundos
+                val id = cursor.getLong(idCol)
+                val uri = Uri.withAppendedPath(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, id.toString())
+                songList.add(RetroCassetteData(
+                    id,
+                    cursor.getString(nameCol).removeSuffix(".mp3"),
+                    uri,
+                    0,
+                    colors.random()
+                ))
+            }
+        }
+    }
+    return songList.sortedBy { it.title.lowercase() }
+}
+
 @Composable
 fun MainScreen(exoPlayer: ExoPlayer, context: Context, onPermissionsGranted: () -> Unit) {
     var currentCassette by remember { mutableStateOf<RetroCassetteData?>(null) }
@@ -218,7 +258,6 @@ fun MainScreen(exoPlayer: ExoPlayer, context: Context, onPermissionsGranted: () 
         if (searchQuery.isEmpty()) myTapes else myTapes.filter { it.title.contains(searchQuery, ignoreCase = true) }
     }
 
-    // --- CORRECCIÓN EN PREPARE AND PLAY ---
     val prepareAndPlay = { tape: RetroCassetteData ->
         try {
             exoPlayer.stop()
@@ -231,32 +270,25 @@ fun MainScreen(exoPlayer: ExoPlayer, context: Context, onPermissionsGranted: () 
             }
             exoPlayer.setMediaItem(mediaItem)
             exoPlayer.prepare()
-            exoPlayer.playWhenReady = true // Usar playWhenReady es más estable para transiciones automáticas
+            exoPlayer.playWhenReady = true
             isPlaying = true
             onPermissionsGranted()
         } catch (e: Exception) { isPlaying = false }
     }
 
-    // --- LÓGICA DE AUTO-NEXT CORREGIDA ---
     LaunchedEffect(exoPlayer) {
         val listener = object : Player.Listener {
             override fun onIsPlayingChanged(playing: Boolean) {
                 isPlaying = playing
             }
-
             override fun onPlaybackStateChanged(state: Int) {
-                // Solo disparamos la lógica si la canción realmente terminó por su cuenta
                 if (state == Player.STATE_ENDED) {
-                    // Usamos un bloque side-effect para evitar problemas de recomposición
                     val currentList = myTapes
                     val currentTape = currentCassette
                     if (currentList.isNotEmpty() && currentTape != null) {
                         val idx = currentList.indexOf(currentTape)
-                        // Calculamos la siguiente canción
                         val nextIdx = (idx + 1) % currentList.size
                         val nextTape = currentList[nextIdx]
-
-                        // Actualizamos el estado y reproducimos
                         currentCassette = nextTape
                         prepareAndPlay(nextTape)
                     }
@@ -274,38 +306,7 @@ fun MainScreen(exoPlayer: ExoPlayer, context: Context, onPermissionsGranted: () 
 
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { perms ->
         if (perms.values.all { it }) {
-            val songList = mutableListOf<RetroCassetteData>()
-            val collection = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) MediaStore.Audio.Media.getContentUri(MediaStore.VOLUME_EXTERNAL)
-            else MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
-
-            val projection = arrayOf(
-                MediaStore.Audio.Media._ID,
-                MediaStore.Audio.Media.DISPLAY_NAME,
-                MediaStore.Audio.Media.DURATION
-            )
-
-            context.contentResolver.query(collection, projection, null, null, null)?.use { cursor ->
-                val idCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media._ID)
-                val nameCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DISPLAY_NAME)
-                val durationCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION)
-                val colors = listOf(Color.Magenta, Color.Cyan, Color.Green, Color(0xFFFF9100))
-
-                while (cursor.moveToNext()) {
-                    val durationMs = cursor.getLong(durationCol)
-                    if (durationMs >= 60000) {
-                        val id = cursor.getLong(idCol)
-                        val uri = Uri.withAppendedPath(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, id.toString())
-                        songList.add(RetroCassetteData(
-                            id,
-                            cursor.getString(nameCol).removeSuffix(".mp3"),
-                            uri,
-                            0,
-                            colors.random()
-                        ))
-                    }
-                }
-            }
-            myTapes = songList.sortedBy { it.title.lowercase() }
+            myTapes = scanDeviceMusic(context)
         }
     }
 
@@ -450,6 +451,10 @@ fun MainScreen(exoPlayer: ExoPlayer, context: Context, onPermissionsGranted: () 
                 searchQuery = searchQuery,
                 onSearchChange = { searchQuery = it },
                 onToggleExpand = { isLibraryExpanded = !isLibraryExpanded },
+                onReload = {
+                    playSoundEffect(context, R.raw.press_button)
+                    myTapes = scanDeviceMusic(context)
+                },
                 onTapeSelected = { tape ->
                     currentCassette = tape
                     isDoorOpen = false
@@ -463,12 +468,29 @@ fun MainScreen(exoPlayer: ExoPlayer, context: Context, onPermissionsGranted: () 
 }
 
 @Composable
-fun LibraryOverlay(tapes: List<RetroCassetteData>, isExpanded: Boolean, searchQuery: String, onSearchChange: (String) -> Unit, onToggleExpand: () -> Unit, onTapeSelected: (RetroCassetteData) -> Unit, onClose: () -> Unit) {
+fun LibraryOverlay(
+    tapes: List<RetroCassetteData>,
+    isExpanded: Boolean,
+    searchQuery: String,
+    onSearchChange: (String) -> Unit,
+    onToggleExpand: () -> Unit,
+    onReload: () -> Unit,
+    onTapeSelected: (RetroCassetteData) -> Unit,
+    onClose: () -> Unit
+) {
     Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(0.8f)).clickable { onClose() }, contentAlignment = Alignment.BottomCenter) {
         Column(modifier = Modifier.fillMaxWidth(if (isExpanded) 1f else 0.95f).fillMaxHeight(if (isExpanded) 0.85f else 0.45f).background(Color(0xFF121212), shape = MaterialTheme.shapes.large).padding(20.dp).clickable(enabled = false) {}) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text("YOUR MIXTAPES (${tapes.size})", color = Color.Cyan, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-                IconButton(onClick = onToggleExpand) { Icon(if (isExpanded) Icons.Default.Close else Icons.Default.Add, contentDescription = null, tint = Color.Cyan) }
+
+                // --- BOTÓN DE RECARGA AÑADIDO ---
+                IconButton(onClick = onReload) {
+                    Icon(Icons.Default.Refresh, contentDescription = "Reload", tint = Color.Green)
+                }
+
+                IconButton(onClick = onToggleExpand) {
+                    Icon(if (isExpanded) Icons.Default.Close else Icons.Default.Add, contentDescription = null, tint = Color.Cyan)
+                }
             }
             OutlinedTextField(
                 value = searchQuery,
