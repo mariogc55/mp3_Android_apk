@@ -25,7 +25,7 @@ This proyect will be uploaded the right way later, for now, this is just demo co
 <img width="411" height="690" alt="image" src="https://github.com/user-attachments/assets/aaaf5f6b-2388-4663-a2d0-ca7398de5dec" />
 <img width="411" height="691" alt="image" src="https://github.com/user-attachments/assets/d931cd7b-38d9-4593-9eff-e22b25a9aa02" />
 
-## Version 3 is now on MainActivity.kt 
+## Version 3
 #### The whole programm has been updated with new buttons and menu but github is not letting me add images about it
 
 <img width="411" height="1200" alt="image" src="https://github.com/user-attachments/assets/43602f0e-f6ef-4b22-8356-db4d41028aa8" />
@@ -36,9 +36,10 @@ This proyect will be uploaded the right way later, for now, this is just demo co
 
 <img width="411" height="1200" alt="image" src="https://github.com/user-attachments/assets/e02d16c4-d66e-4bf2-91b3-d704afdf7635" />
 
-## Version 4 soon avariable
+## Version 4 so far
 #### New buttons for skip forward and go back quicker
+<img width="411" height="1200" alt="image" src="https://github.com/user-attachments/assets/e47be5b0-9550-41a4-ab58-d9b4a6e0fc3c" />
 
-<img width="411" height="1200" alt="image" src="https://github.com/user-attachments/assets/8d92711b-406c-417d-b7aa-549df7c4896f" />
 
+<img width="411" height="1200" alt="image" src="https://github.com/user-attachments/assets/bba5763a-40f3-43ae-83bd-35c2e640cea6" />
 
