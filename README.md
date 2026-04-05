@@ -8,17 +8,18 @@
 - more sounds
 - better UI/UX
 - bug fixes (fix the draging function)
-- more functionaliti
+- more functionalities
+- notification bar
 
 
 <img width="500" height="500" alt="cassette_unico" src="https://github.com/user-attachments/assets/3a1045a5-874e-45fc-8c87-c189a1605340" />
 
-## planning on adding more cassette designs
+## planning on adding more cassette designs.
 
 <img width="800" height="800" alt="image" src="https://github.com/user-attachments/assets/8df5120a-cf98-4b7d-a307-366f78f0afef" />
 
 ## //---This is a work in progress---//
-This proyect will be uploaded the right way later, for now, this is just demo code
+This proyect will be uploaded the right way later, for now, this is just demo code.
 
 
 ## Version 2
@@ -26,7 +27,7 @@ This proyect will be uploaded the right way later, for now, this is just demo co
 <img width="411" height="691" alt="image" src="https://github.com/user-attachments/assets/d931cd7b-38d9-4593-9eff-e22b25a9aa02" />
 
 ## Version 3
-#### The whole programm has been updated with new buttons and menu but github is not letting me add images about it
+#### The whole programm has been updated with new buttons and menu but github is not letting me add images about it.
 
 <img width="411" height="1200" alt="image" src="https://github.com/user-attachments/assets/43602f0e-f6ef-4b22-8356-db4d41028aa8" />
 
@@ -37,9 +38,12 @@ This proyect will be uploaded the right way later, for now, this is just demo co
 <img width="411" height="1200" alt="image" src="https://github.com/user-attachments/assets/e02d16c4-d66e-4bf2-91b3-d704afdf7635" />
 
 ## Version 4 so far
-#### New buttons for skip forward and go back quicker
+#### New buttons for skip forward and go back quicker, now with notifications toolbar, bug fixes, and recharge button on menu.
 <img width="411" height="1200" alt="image" src="https://github.com/user-attachments/assets/e47be5b0-9550-41a4-ab58-d9b4a6e0fc3c" />
 
-
 <img width="411" height="1200" alt="image" src="https://github.com/user-attachments/assets/bba5763a-40f3-43ae-83bd-35c2e640cea6" />
+
+<img width="411" height="1200" alt="image" src="https://github.com/user-attachments/assets/70947cab-9284-4be8-b72b-3adc688fe9d5" />
+
+<img width="411" height="1200" alt="image" src="https://github.com/user-attachments/assets/1e42aea6-8ca9-4480-81d2-fddb537f6f09" />
 
