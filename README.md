@@ -5,6 +5,7 @@
 
 ### //--WORK IN PROGRESS--//
 #### Working on:
+- thinking on how to put the .mp3 image in the cassette
 - thinking in new oficial name (WaveTape / RetroPlayer / TapeWave / Tape Player / Groover / HeatLine / HeatWave-Player)-(Original name: Retrowave Player)
 - dessign improve
 - better UI/UX (still in planning)
