@@ -1,7 +1,7 @@
 ##### Trying to create an mp3 in android studio with Retrowave Style.
 ##### for now, only the MainActivity.kt will be in this repository.
 
-# Welcome To: Retrowave Player.mp3
+# Welcome To: HeatLine Player
 
 ### //--WORK IN PROGRESS--//
 #### Working on:
