@@ -1,13 +1,11 @@
-# mp3_Android_apk
-#### Trying to create an mp3 in android studio
-#### for now, only the MainActivity.kt will be in this repository.
-### The apk won't be avariable until the R.F.P. is completed.
-- Retro
-- Fun
-- Player
+##### Trying to create an mp3 in android studio with Retrowave Style.
+##### for now, only the MainActivity.kt will be in this repository.
+
+# Welcome To: Retrowave Player.mp3
 
 ### //--WORK IN PROGRESS--//
-#### still in progress for:
+#### Working on:
+- thinking in new oficial name (WaveTape / RetroPlayer / TapeWave / Tape Player / Groover / HeatLine / HeatWave-Player)-(Original name: Retrowave Player)
 - dessign improve
 - better UI/UX (still in planning)
 - bug fixes (fix the draging function)
