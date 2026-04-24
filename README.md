@@ -7,11 +7,10 @@
 #### Working on:
 - thinking on how to put the .mp3 image in the cassette
 - thinking in new oficial name (WaveTape / RetroPlayer / TapeWave / Tape Player / Groover / HeatLine / HeatWave-Player)-(Original name: Retrowave Player)
-- dessign improve
 - better UI/UX (still in planning)
 - bug fixes (fix the draging function)
-- more functionalities (filters/folders)
-- notification bar (completed/bug fixes)
+- adding filters/folders options
+- notification bar completed
 
 
 <img width="500" height="500" alt="cassette_unico" src="https://github.com/user-attachments/assets/3a1045a5-874e-45fc-8c87-c189a1605340" />
