@@ -9,8 +9,11 @@
 - thinking in new oficial name (WaveTape / RetroPlayer / TapeWave / Tape Player / Groover / HeatLine / HeatWave-Player)-(Original name: Retrowave Player)
 - better UI/UX (still in planning)
 - bug fixes (fix the draging function)
-- adding filters/folders options
+- adding filters/folders options (optional)
 - notification bar completed
+- fix the size on the rotating mechanism
+- think about a better apk image
+- change background image
 
 
 <img width="500" height="500" alt="cassette_unico" src="https://github.com/user-attachments/assets/3a1045a5-874e-45fc-8c87-c189a1605340" />
