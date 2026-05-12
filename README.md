@@ -1,7 +1,6 @@
-##### Trying to create an mp3 in android studio with Retrowave Style.
-##### for now, only the MainActivity.kt will be in this repository.
-
 # Welcome To: HeatLine
+
+##### for now, only the MainActivity.kt will be in this repository.
 
 ### //--WORK IN PROGRESS--//
 #### Working on:
@@ -11,9 +10,9 @@
 - bug fixes (fix the draging function)
 - adding filters/folders options (optional)
 - notification bar completed
-- fix the size on the rotating mechanism
-- think about a better apk image
-- change background image
+- fix the size on the rotating mechanism (priority)
+- think about a better apk logo image
+- change background image in progress
 
 
 <img width="500" height="500" alt="cassette_unico" src="https://github.com/user-attachments/assets/3a1045a5-874e-45fc-8c87-c189a1605340" />
