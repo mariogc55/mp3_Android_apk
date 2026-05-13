@@ -1,6 +1,6 @@
 # Welcome To: HeatLine
 
-##### for now, only the MainActivity.kt will be in this repository.
+##### for now, only the MainActivity.kt will be in this repository, The apk wont be avariable for now.
 
 ### //--WORK IN PROGRESS--//
 #### Working on:
@@ -13,6 +13,7 @@
 - fix the size on the rotating mechanism (priority)
 - think about a better apk logo image
 - change background image in progress
+- change de songs menu, it looks weird (put the name of the song in the cassette instead, and also under it for better reading
 
 
 <img width="500" height="500" alt="cassette_unico" src="https://github.com/user-attachments/assets/3a1045a5-874e-45fc-8c87-c189a1605340" />
