@@ -47,10 +47,10 @@ This proyect will be uploaded the right way later, for now, this is just demo co
 
 <img width="411" height="1200" alt="image" src="https://github.com/user-attachments/assets/bba5763a-40f3-43ae-83bd-35c2e640cea6" />
 
-<img width="411" height="1200" alt="image" src="https://github.com/user-attachments/assets/70947cab-9284-4be8-b72b-3adc688fe9d5" />
+<img width="700" height="500" alt="image" src="https://github.com/user-attachments/assets/70947cab-9284-4be8-b72b-3adc688fe9d5" />
 
-<img width="411" height="1200" alt="image" src="https://github.com/user-attachments/assets/1e42aea6-8ca9-4480-81d2-fddb537f6f09" />
+<img width="700" height="500" alt="image" src="https://github.com/user-attachments/assets/1e42aea6-8ca9-4480-81d2-fddb537f6f09" />
 
-#### this app is mostly for phones, but works in tablets too
+#### this app is mostly for phones, but works in tablets too, even if the size of everything is wrong
 
-<img width="411" height="1200" alt="image" src="https://github.com/user-attachments/assets/e9b8d27a-f4b2-4ce6-88dd-63b7ddee4e00" />
+<img width="1500" height="1000" alt="image" src="https://github.com/user-attachments/assets/e9b8d27a-f4b2-4ce6-88dd-63b7ddee4e00" />
