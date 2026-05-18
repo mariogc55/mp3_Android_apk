@@ -7,18 +7,18 @@
 - thinking on how to put the .mp3 image in the cassette
 - thinking in new oficial name (WaveTape / RetroPlayer / TapeWave / Tape Player / Groover / HeatLine / HeatWave-Player)-(Original name: Retrowave Player)
 - better UI/UX (still in planning)
-- bug fixes (fix the draging function)
+- bug fixes (fix the draging function and fix cassette names position)
 - adding filters/folders options (optional)
-- notification bar completed
+- notification bar completed (can be used with headphone buttons)
 - fix the size on the rotating mechanism (priority)
 - think about a better apk logo image
-- change background image in progress
-- change the songs menu, it looks weird (put the name of the song in the cassette instead, and also under it for better reading)
+- change background image in progress (in design)
+- change the songs menu, it looks weird (idea: put the name of the song in the cassette instead, and also under it for better reading)
 
 
 <img width="500" height="500" alt="cassette_unico" src="https://github.com/user-attachments/assets/3a1045a5-874e-45fc-8c87-c189a1605340" />
 
-## planning on adding more cassette designs.
+## planning on adding more cassette designs (probably not, and instead just the song image on the cassette).
 
 <img width="800" height="800" alt="image" src="https://github.com/user-attachments/assets/8df5120a-cf98-4b7d-a307-366f78f0afef" />
 
