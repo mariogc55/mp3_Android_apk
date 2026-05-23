@@ -3,6 +3,9 @@
 ##### for now, only the MainActivity.kt will be in this repository, The apk wont be avariable for now.
 
 ### //--WORK IN PROGRESS--//
+
+##### i have been testing the apk for a while, and still thiking how to make the cassette selection menu right.
+
 #### Working on:
 - thinking on how to put the .mp3 image in the cassette
 - thinking in new oficial name (WaveTape / RetroPlayer / TapeWave / Tape Player / Groover / HeatLine / HeatWave-Player)-(Original name: Retrowave Player)
