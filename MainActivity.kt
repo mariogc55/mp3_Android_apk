@@ -512,7 +512,7 @@ fun BoxScope.CassetteVisual(rotation: Float, isMoving: Boolean, alpha: Float, ti
 
 @Composable
 fun Engranaje(rotation: Float) {
-    Image(painter = painterResource(id = R.drawable.engranaje_cassette), contentDescription = null, modifier = Modifier.size(27.dp).graphicsLayer(rotationZ = rotation))
+    Image(painter = painterResource(id = R.drawable.engranaje_cassette), contentDescription = null, modifier = Modifier.size(22.dp).graphicsLayer(rotationZ = rotation))
 }
 
 @Composable
