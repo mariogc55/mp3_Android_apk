@@ -60,8 +60,10 @@ import kotlinx.coroutines.delay
 import com.mariogc55.retrowave.player.ui.theme.RetroCassettePlayerTheme
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 
+// --- MODELOS ---
 data class RetroCassetteData(val id: Long, val title: String, val songUri: Uri? = null, val songResId: Int = 0, val color: Color)
 
+// --- SERVICIO DE REPRODUCCIÓN ---
 class PlaybackService : MediaSessionService() {
     private var mediaSession: MediaSession? = null
 
@@ -156,7 +158,7 @@ class PlaybackService : MediaSessionService() {
     }
 }
 
-// --- DRAG & DROP --- (requires fix)
+// --- DRAG & DROP ---
 class RetroDragInfo {
     var isDragging: Boolean by mutableStateOf(false)
     var dragPosition by mutableStateOf(Offset.Zero)
@@ -166,6 +168,7 @@ class RetroDragInfo {
 }
 val LocalRetroDragInfo = compositionLocalOf { RetroDragInfo() }
 
+// --- ACTIVIDAD ---
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -192,6 +195,7 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+// --- UI PRINCIPAL ---
 @Composable
 fun MainScreen(exoPlayer: ExoPlayer, context: Context, onPermissionsGranted: () -> Unit) {
     var currentCassette by remember { mutableStateOf<RetroCassetteData?>(null) }
@@ -209,6 +213,7 @@ fun MainScreen(exoPlayer: ExoPlayer, context: Context, onPermissionsGranted: () 
         if (searchQuery.isEmpty()) myTapes else myTapes.filter { it.title.contains(searchQuery, ignoreCase = true) }
     }
 
+    // Función unificada para cargar playlist y reproducir
     fun updatePlaylistAndPlay(targetTape: RetroCassetteData) {
         exoPlayer.stop()
         exoPlayer.clearMediaItems()
@@ -302,6 +307,7 @@ fun MainScreen(exoPlayer: ExoPlayer, context: Context, onPermissionsGranted: () 
                 }
             }
 
+            // BOTONES DE NAVEGACIÓN (Corregido para evitar que se trabe tras Eject)
             Row(modifier = Modifier.fillMaxWidth(0.6f).padding(bottom = 15.dp), horizontalArrangement = Arrangement.SpaceBetween) {
                 PlayerButton(R.drawable.previous_song_button) {
                     if (currentCassette != null && exoPlayer.hasPreviousMediaItem()) {
@@ -333,6 +339,7 @@ fun MainScreen(exoPlayer: ExoPlayer, context: Context, onPermissionsGranted: () 
                 }
             }
 
+            // BOTONES DE CONTROL
             Row(modifier = Modifier.fillMaxWidth().padding(bottom = 50.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
                 PlayerButton(R.drawable.btn_start) {
                     if (currentCassette != null && !isDoorOpen) {
@@ -368,7 +375,7 @@ fun MainScreen(exoPlayer: ExoPlayer, context: Context, onPermissionsGranted: () 
                         isDoorOpen = true
                         currentCassette = null
                         exoPlayer.stop()
-                        exoPlayer.clearMediaItems()
+                        exoPlayer.clearMediaItems() // Limpiamos para evitar residuos en el motor
                     }
                 }
                 PlayerButton(R.drawable.btn_menu) {
@@ -401,6 +408,7 @@ fun MainScreen(exoPlayer: ExoPlayer, context: Context, onPermissionsGranted: () 
     }
 }
 
+// --- AUXILIARES Y COMPONENTES ---
 
 fun scanDeviceMusic(context: Context): List<RetroCassetteData> {
     val songList = mutableListOf<RetroCassetteData>()
