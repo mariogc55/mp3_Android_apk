@@ -8,16 +8,16 @@
 ##### i have been testing the apk for a while, and still thiking how to make the cassette selection menu right.
 
 #### Working on:
-- thinking on how to put the .mp3 image in the cassette
+- thinking on how to put the .mp3 image in the cassette --DONE--
 - thinking in new oficial name (WaveTape / RetroPlayer / TapeWave / Tape Player / Groover / HeatLine / HeatWave-Player)-(Original name: Retrowave Player)
-- better UI/UX (still in planning)
-- bug fixes (fix the draging function and fix cassette names position)
-- adding filters/folders options (optional)
-- notification bar completed (can be used with headphone buttons)
-- fix the size on the rotating mechanism (priority)
-- think about a better apk logo image
+- better UI/UX (still in planning) --DONE--
+- bug fixes (fix the draging function and fix cassette names position) -- (half) DONE--
+- adding filters/folders options (optional) 
+- notification bar completed (can be used with headphone buttons) --DONE--
+- fix the size on the rotating mechanism (priority) --DONE--
+- think about a better apk logo image 
 - change background image in progress (in design)
-- change the songs menu, it looks weird (idea: put the name of the song in the cassette instead, and also under it for better reading)
+- change the songs menu, it looks weird (idea: put the name of the song in the cassette instead, and also under it for better reading) --DONE--
 
 
 <img width="500" height="500" alt="cassette_unico" src="https://github.com/user-attachments/assets/3a1045a5-874e-45fc-8c87-c189a1605340" />
@@ -58,3 +58,10 @@ This proyect will be uploaded the right way later, for now, this is just demo co
 #### this app is mostly for phones, but works in tablets too, even if the size of everything is wrong
 
 <img width="1500" height="1000" alt="image" src="https://github.com/user-attachments/assets/e9b8d27a-f4b2-4ce6-88dd-63b7ddee4e00" />
+
+## Version 5
+#### Cassettes now have the song image, and new menu style with cassettes with the image of the song
+
+<img width="720" height="1600" alt="demostration_v5" src="https://github.com/user-attachments/assets/3590ee31-d4c8-4b0f-8ff1-f1d9a8391846" />
+<img width="720" height="1600" alt="demostration_menu_v5" src="https://github.com/user-attachments/assets/25760ce9-75c8-439a-a116-9d238434d487" />
+
