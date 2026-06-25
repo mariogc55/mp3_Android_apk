@@ -516,9 +516,76 @@ fun LibraryOverlay(tapes: List<RetroCassetteData>, isExpanded: Boolean, searchQu
 @Composable
 fun TapeItem(tape: RetroCassetteData, onTapeSelected: (RetroCassetteData) -> Unit) {
     RetroDragTarget(dataToDrop = tape) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(130.dp).clickable { onTapeSelected(tape) }) {
-            Image(painter = painterResource(id = R.drawable.cassette_top_view), contentDescription = null, modifier = Modifier.size(130.dp, 50.dp))
-            Text(tape.title, color = tape.color, fontSize = 10.sp, maxLines = 1, modifier = Modifier.padding(top = 5.dp))
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier
+                .width(250.dp)
+                .clickable { onTapeSelected(tape) }
+        ) {
+            // Reemplazamos la imagen plana por un contenedor multi-capa en miniatura
+            Box(
+                modifier = Modifier
+                    .size(width = 250.dp, height = 120.dp), // Tamaño de la miniatura en el menú
+                contentAlignment = Alignment.Center
+            ) {
+                // CAPA 0: El chasis plástico del cassette de fondo
+                Image(
+                    painter = painterResource(id = R.drawable.cassette_unico),
+                    contentDescription = null,
+                    modifier = Modifier
+                        .height(120.dp)
+                        .width(250.dp)
+                )
+
+                // CAPA 1: Sistema dinámico de la mini-carátula (Si la canción tiene portada)
+                if (tape.artwork != null) {
+
+                    // Ajuste de proporciones para la miniatura (Escala aproximada del principal)
+                    val miniEtiquetaAncho = 85.dp  // Proporcional al tamaño 130.dp
+                    val miniEtiquetaAlto = 39.dp
+                    val miniDesplazarY = (-5).dp
+
+                    Box(
+                        modifier = Modifier
+                            .size(width = miniEtiquetaAncho, height = miniEtiquetaAlto)
+                            .offset(y = miniDesplazarY),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        // 1A. El fondo/marco de la imagen
+                        Image(
+                            painter = painterResource(id = R.drawable.fondo_para_imagen_cassette),
+                            contentDescription = null,
+                            modifier = Modifier.fillMaxSize()
+                        )
+
+                        // 1B. La carátula real en miniatura
+                        Image(
+                            bitmap = tape.artwork.asImageBitmap(),
+                            contentDescription = null,
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = Crop
+                        )
+
+                        // 1C. Máscara estática superior en miniatura
+                        Image(
+                            painter = painterResource(id = R.drawable.item_interno_estatico_cassette),
+                            contentDescription = null,
+                            modifier = Modifier
+                                .height(30.dp)
+                                .width(60.dp)
+                        )
+                    }
+                }
+            }
+
+            // Título de la canción debajo del mini-cassette calco
+            Text(
+                text = tape.title,
+                color = tape.color,
+                fontSize = 12.sp,
+                maxLines = 2,
+                modifier = Modifier.padding(top = 5.dp)
+            )
         }
     }
 }
