@@ -1,6 +1,7 @@
 # Welcome To: HeatLine
 
-##### for now, only the MainActivity.kt will be in this repository, The apk wont be avariable for now.
+##### for now, only the MainActivity.kt will be in this repository, The apk wont be avariable.
+##### updates wont be very soon for now (a lot of design is required first)
 
 ### //--WORK IN PROGRESS--//
 
