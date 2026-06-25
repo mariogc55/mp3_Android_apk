@@ -630,7 +630,7 @@ fun BoxScope.CassetteVisual(rotation: Float, isMoving: Boolean, alpha: Float, ca
                     .width(130.dp)
                     .offset(y = (-80).dp),
                 fontSize = 12.sp,
-                color = if (cassetteData.artwork != null) Color.White else Color.Cyan
+                color = if (cassetteData.artwork != null) Color.Cyan else Color.White
             )
         }
 
