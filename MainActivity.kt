@@ -7,6 +7,9 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.media.MediaMetadataRetriever
 import android.media.MediaPlayer
 import android.net.Uri
 import android.os.Build
@@ -36,6 +39,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale.Companion.Crop
@@ -61,7 +65,14 @@ import com.mariogc55.retrowave.player.ui.theme.RetroCassettePlayerTheme
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 
 // --- MODELOS ---
-data class RetroCassetteData(val id: Long, val title: String, val songUri: Uri? = null, val songResId: Int = 0, val color: Color)
+data class RetroCassetteData(
+    val id: Long,
+    val title: String,
+    val songUri: Uri? = null,
+    val songResId: Int = 0,
+    val color: Color,
+    val artwork: Bitmap? = null
+)
 
 // --- SERVICIO DE REPRODUCCIÓN ---
 class PlaybackService : MediaSessionService() {
@@ -213,7 +224,6 @@ fun MainScreen(exoPlayer: ExoPlayer, context: Context, onPermissionsGranted: () 
         if (searchQuery.isEmpty()) myTapes else myTapes.filter { it.title.contains(searchQuery, ignoreCase = true) }
     }
 
-    // Función unificada para cargar playlist y reproducir
     fun updatePlaylistAndPlay(targetTape: RetroCassetteData) {
         exoPlayer.stop()
         exoPlayer.clearMediaItems()
@@ -282,7 +292,7 @@ fun MainScreen(exoPlayer: ExoPlayer, context: Context, onPermissionsGranted: () 
                         hasCassette = currentCassette != null,
                         isPlaying = isPlaying,
                         isRewinding = isRewinding,
-                        currentTitle = currentCassette?.title ?: "",
+                        currentCassette = currentCassette,
                         onDoorToggle = {
                             isDoorOpen = !isDoorOpen
                             playSoundEffect(context, if (isDoorOpen) R.raw.open_tape else R.raw.closing_tape)
@@ -307,7 +317,7 @@ fun MainScreen(exoPlayer: ExoPlayer, context: Context, onPermissionsGranted: () 
                 }
             }
 
-            // BOTONES DE NAVEGACIÓN (Corregido para evitar que se trabe tras Eject)
+            // BOTONES DE NAVEGACIÓN
             Row(modifier = Modifier.fillMaxWidth(0.6f).padding(bottom = 15.dp), horizontalArrangement = Arrangement.SpaceBetween) {
                 PlayerButton(R.drawable.previous_song_button) {
                     if (currentCassette != null && exoPlayer.hasPreviousMediaItem()) {
@@ -375,7 +385,7 @@ fun MainScreen(exoPlayer: ExoPlayer, context: Context, onPermissionsGranted: () 
                         isDoorOpen = true
                         currentCassette = null
                         exoPlayer.stop()
-                        exoPlayer.clearMediaItems() // Limpiamos para evitar residuos en el motor
+                        exoPlayer.clearMediaItems()
                     }
                 }
                 PlayerButton(R.drawable.btn_menu) {
@@ -414,18 +424,44 @@ fun scanDeviceMusic(context: Context): List<RetroCassetteData> {
     val songList = mutableListOf<RetroCassetteData>()
     val collection = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) MediaStore.Audio.Media.getContentUri(MediaStore.VOLUME_EXTERNAL) else MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
     val projection = arrayOf(MediaStore.Audio.Media._ID, MediaStore.Audio.Media.DISPLAY_NAME, MediaStore.Audio.Media.DURATION)
+
     context.contentResolver.query(collection, projection, null, null, null)?.use { cursor ->
         val idCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media._ID)
         val nameCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DISPLAY_NAME)
         val durCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION)
         val colors = listOf(Color.Magenta, Color.Cyan, Color.Green, Color(0xFFFF9100))
+
+        val retriever = MediaMetadataRetriever()
+
         while (cursor.moveToNext()) {
             if (cursor.getLong(durCol) >= 20000) {
                 val id = cursor.getLong(idCol)
                 val uri = Uri.withAppendedPath(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, id.toString())
-                songList.add(RetroCassetteData(id, cursor.getString(nameCol).removeSuffix(".mp3"), uri, 0, colors.random()))
+
+                var artworkBitmap: Bitmap? = null
+                try {
+                    retriever.setDataSource(context, uri)
+                    val artBytes = retriever.embeddedPicture
+                    if (artBytes != null) {
+                        artworkBitmap = BitmapFactory.decodeByteArray(artBytes, 0, artBytes.size)
+                    }
+                } catch (e: Exception) {
+                    // Sin portada disponible
+                }
+
+                songList.add(
+                    RetroCassetteData(
+                        id = id,
+                        title = cursor.getString(nameCol).removeSuffix(".mp3"),
+                        songUri = uri,
+                        songResId = 0,
+                        color = colors.random(),
+                        artwork = artworkBitmap
+                    )
+                )
             }
         }
+        try { retriever.release() } catch (e: Exception) {}
     }
     return songList.sortedBy { it.title.lowercase() }
 }
@@ -493,25 +529,118 @@ fun PlayerButton(resId: Int, onClick: () -> Unit) {
 }
 
 @Composable
-fun CassetteDeckSection(modifier: Modifier, isDoorOpen: Boolean, hasCassette: Boolean, isPlaying: Boolean, isRewinding: Boolean, currentTitle: String, onDoorToggle: () -> Unit, onCassetteDropped: (RetroCassetteData) -> Unit) {
+fun CassetteDeckSection(
+    modifier: Modifier,
+    isDoorOpen: Boolean,
+    hasCassette: Boolean,
+    isPlaying: Boolean,
+    isRewinding: Boolean,
+    currentCassette: RetroCassetteData?,
+    onDoorToggle: () -> Unit,
+    onCassetteDropped: (RetroCassetteData) -> Unit
+) {
     RetroDropTarget<RetroCassetteData>(modifier = modifier) { _, data ->
-        val rotation by rememberInfiniteTransition().animateFloat(initialValue = 0f, targetValue = if (isRewinding) -360f else 360f, animationSpec = infiniteRepeatable(animation = tween(if (isRewinding) 400 else 2000, easing = LinearEasing)), label = "")
+        val rotation by rememberInfiniteTransition().animateFloat(
+            initialValue = 0f,
+            targetValue = if (isRewinding) -360f else 360f,
+            animationSpec = infiniteRepeatable(animation = tween(if (isRewinding) 400 else 2000, easing = LinearEasing)),
+            label = ""
+        )
         LaunchedEffect(data) { data?.let { onCassetteDropped(it) } }
         Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
             Image(painter = painterResource(id = R.drawable.tapa_abierta), contentDescription = null)
             if (!isDoorOpen) Image(painter = painterResource(id = R.drawable.tapa_cerrada), contentDescription = null, modifier = Modifier.clickable { onDoorToggle() })
-            if (hasCassette) CassetteVisual(rotation = rotation, isMoving = isPlaying || isRewinding, alpha = if (!isDoorOpen) 0.8f else 1f, title = currentTitle)
+            if (hasCassette && currentCassette != null) {
+                CassetteVisual(
+                    rotation = rotation,
+                    isMoving = isPlaying || isRewinding,
+                    alpha = if (!isDoorOpen) 0.8f else 1f,
+                    cassetteData = currentCassette
+                )
+            }
             if (isDoorOpen) Box(modifier = Modifier.fillMaxSize().clickable { onDoorToggle() })
         }
     }
 }
 
 @Composable
-fun BoxScope.CassetteVisual(rotation: Float, isMoving: Boolean, alpha: Float, title: String) {
-    Box(modifier = Modifier.size(200.dp).offset(y = 11.dp).graphicsLayer(alpha = alpha), contentAlignment = Alignment.Center) {
-        Image(painter = painterResource(id = R.drawable.cassette_unico), contentDescription = null)
-        if (title.isNotEmpty()) MarqueeText(text = title, modifier = Modifier.width(130.dp).offset(y = (-80).dp), fontSize = 12.sp, color = Color.Cyan)
-        Row(modifier = Modifier.fillMaxWidth(0.46f).offset(y = (-6).dp), horizontalArrangement = Arrangement.SpaceBetween) {
+fun BoxScope.CassetteVisual(rotation: Float, isMoving: Boolean, alpha: Float, cassetteData: RetroCassetteData) {
+    // Caja principal que contiene el chasis completo del cassette
+    Box(
+        modifier = Modifier
+            .size(200.dp) // Tamaño base de todo el cassette
+            .offset(y = 11.dp)
+            .graphicsLayer(alpha = alpha),
+        contentAlignment = Alignment.Center
+    ) {
+        // CAPA 0: El chasis plástico de fondo SIEMPRE visible
+        Image(
+            painter = painterResource(id = R.drawable.cassette_unico),
+            contentDescription = null,
+            modifier = Modifier.fillMaxSize() // Toma el tamaño total (los 200.dp del contenedor)
+        )
+
+        // CAPA 1: Sistema dinámico de la carátula (Se dibuja encima de la capa base)
+        if (cassetteData.artwork != null) {
+
+            // MODIFICA ESTAS VARIABLES PARA REAJUSTAR EL TAMAÑO Y POSICIÓN DE LA PORTADA
+            // Con estas medidas controlas la caja que unifica el fondo, la foto y la máscara estática.
+            val etiquetaAncho = 140.dp
+            val etiquetaAlto = 65.dp
+            val desplazarX = 0.dp
+            val desplazarY = (-7).dp // Si queda muy arriba o abajo respecto a los agujeros, altera este valor
+
+            Box(
+                modifier = Modifier
+                    .size(width = etiquetaAncho, height = etiquetaAlto)
+                    .offset(x = desplazarX, y = desplazarY),
+                contentAlignment = Alignment.Center
+            ) {
+                // 1A. El marco/fondo de la imagen del cassette
+                Image(
+                    painter = painterResource(id = R.drawable.fondo_para_imagen_cassette),
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize()
+                )
+
+                // 1B. La foto de la carátula real extraída de la canción
+                Image(
+                    bitmap = cassetteData.artwork.asImageBitmap(),
+                    contentDescription = "Cover Art",
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = Crop
+                )
+
+                // 1C. Máscara interna estática (Relieves y recortes)
+                Image(
+                    painter = painterResource(id = R.drawable.item_interno_estatico_cassette),
+                    contentDescription = null,
+                    modifier = Modifier
+                        .width(95.dp) //140
+                        .height(55.dp) //65
+                )
+            }
+        }
+
+        // CAPA 2: Marquesina de texto con el título
+        if (cassetteData.title.isNotEmpty()) {
+            MarqueeText(
+                text = cassetteData.title,
+                modifier = Modifier
+                    .width(130.dp)
+                    .offset(y = (-80).dp),
+                fontSize = 12.sp,
+                color = if (cassetteData.artwork != null) Color.White else Color.Cyan
+            )
+        }
+
+        // CAPA 3: Los engranajes animados al frente de absolutamente todo
+        Row(
+            modifier = Modifier
+                .fillMaxWidth(0.45f)
+                .offset(y = (-7).dp), //-6
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
             Engranaje(rotation = if (isMoving) rotation else 0f)
             Engranaje(rotation = if (isMoving) rotation else 0f)
         }
