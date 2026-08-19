@@ -18,6 +18,7 @@
 - think about a better apk logo image 
 - change background image in progress (in design)
 - change the songs menu, it looks weird (idea: put the name of the song in the cassette instead, and also under it for better reading) --DONE--
+- fix the starting lag using a loading screen (in progress)
 
 
 <img width="500" height="500" alt="cassette_unico" src="https://github.com/user-attachments/assets/3a1045a5-874e-45fc-8c87-c189a1605340" />
