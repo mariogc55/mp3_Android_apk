@@ -5,6 +5,8 @@
 
 ### //--WORK IN PROGRESS--//
 
+#### The code is not fully in github, and the code that is in github is only for showing advancements, the app will be published the right way when its finish
+
 ##### i have been testing the apk for a while, and still thiking how to make the cassette selection menu right.
 
 #### Working on:
