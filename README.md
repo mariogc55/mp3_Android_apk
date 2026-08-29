@@ -66,3 +66,10 @@ This proyect will be uploaded the right way later, for now, this is just demo co
 <img width="720" height="1600" alt="demostration_v5" src="https://github.com/user-attachments/assets/3590ee31-d4c8-4b0f-8ff1-f1d9a8391846" />
 <img width="720" height="1600" alt="demostration_menu_v5" src="https://github.com/user-attachments/assets/25760ce9-75c8-439a-a116-9d238434d487" />
 
+
+## Version 6
+#### now with recursivity, and loading the songs first to avoid crashing the app, no more using only MainActivity.kt, now i divided the code in 3 packages that will be uploaded in github (the project is still in development and wont come out until its finish)
+
+<img width="545" height="248" alt="image" src="https://github.com/user-attachments/assets/a997e51a-967d-4616-b033-7ca9736c633e" />
+
+<img width="325" height="717" alt="image" src="https://github.com/user-attachments/assets/1d0eba50-8fc6-47d9-8cc1-3da73f19f5db" />
