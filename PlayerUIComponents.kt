@@ -160,6 +160,7 @@ fun CassetteDeckSection(
                     width = 280.dp * baseScale,
                     height = 190.dp * baseScale
                 )
+                .clickable { onDoorToggle() }
             )
 
             if (!isDoorOpen) {
